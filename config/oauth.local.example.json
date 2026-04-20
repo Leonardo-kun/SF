@@ -1,0 +1,8 @@
+{
+  "clientSecret": "COLOQUE_SEU_CLIENT_SECRET_AQUI",
+  "clientId": "SEU_CLIENT_ID.apps.googleusercontent.com",
+  "baseUrl": "https://seudominio.com",
+  "fileName": "sf-data.json",
+  "legacyFileNames": ["financeos-data.json"],
+  "useAppDataFolder": true
+}

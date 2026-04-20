@@ -1,10 +1,10 @@
-# SF com login Google, Drive e deploy em hospedagem
+# SF com backend Node.js, login Google e Drive
 
 O app principal continua em [public/index.html](/C:/Users/Ac/Documents/Finance/public/index.html), mas agora ele trabalha em dois modos:
 
-- com backend OAuth em [scripts/server.ps1](/C:/Users/Ac/Documents/Finance/scripts/server.ps1), usando `authorization code` + `refresh token`;
+- com backend OAuth em [scripts/server.js](/C:/Users/Ac/Documents/Finance/scripts/server.js), usando `authorization code` + `refresh token`;
 - com fallback no navegador, usando apenas o `clientId` configurado em [public/drive-config.js](/C:/Users/Ac/Documents/Finance/public/drive-config.js), para que o login Google e a sincronizacao continuem funcionando mesmo sem `clientSecret`.
-- com backend PHP em [public/api/index.php](/C:/Users/Ac/Documents/Finance/public/api/index.php), pronto para hospedagem compartilhada como HostGator.
+- com backend PHP em [public/api/index.php](/C:/Users/Ac/Documents/Finance/public/api/index.php), mantido apenas como opcao para hospedagem compartilhada sem Node.
 
 Quando o `clientSecret` estiver preenchido em [config/oauth.local.json](/C:/Users/Ac/Documents/Finance/config/oauth.local.json), o app prioriza automaticamente o backend com refresh token. Se ele nao estiver preenchido, o app usa o fluxo direto do Google no navegador.
 
@@ -13,12 +13,12 @@ Quando o `clientSecret` estiver preenchido em [config/oauth.local.json](/C:/User
 - [public/index.html](/C:/Users/Ac/Documents/Finance/public/index.html): interface do app
 - [public/drive-config.js](/C:/Users/Ac/Documents/Finance/public/drive-config.js): configuracao publica do app e do Drive
 - [public/drive-config.example.js](/C:/Users/Ac/Documents/Finance/public/drive-config.example.js): modelo da configuracao publica
+- [scripts/server.js](/C:/Users/Ac/Documents/Finance/scripts/server.js): servidor Node.js com arquivos estaticos, OAuth e proxy do Drive
+- [scripts/smoke-check.js](/C:/Users/Ac/Documents/Finance/scripts/smoke-check.js): checagem rapida do servidor Node
 - [public/api/index.php](/C:/Users/Ac/Documents/Finance/public/api/index.php): backend PHP para hospedagem
 - [public/.htaccess](/C:/Users/Ac/Documents/Finance/public/.htaccess): reescrita de rotas `/api/*`
 - [config/oauth.local.json](/C:/Users/Ac/Documents/Finance/config/oauth.local.json): configuracao privada do backend OAuth
 - [config/oauth.local.example.json](/C:/Users/Ac/Documents/Finance/config/oauth.local.example.json): modelo da configuracao privada
-- [scripts/server.ps1](/C:/Users/Ac/Documents/Finance/scripts/server.ps1): servidor local com arquivos estaticos, OAuth e proxy do Drive
-- [scripts/smoke-check.ps1](/C:/Users/Ac/Documents/Finance/scripts/smoke-check.ps1): checagem rapida do servidor e das rotas principais
 - [HOSTGATOR.md](/C:/Users/Ac/Documents/Finance/HOSTGATOR.md): passo a passo de deploy no HostGator
 
 ## 1. Configurar o Google Cloud
@@ -65,12 +65,6 @@ Observacoes:
 ## 3. Rodar localmente
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\server.ps1
-```
-
-Ou, se voce tiver Node/npm instalado:
-
-```powershell
 npm start
 ```
 
@@ -79,12 +73,6 @@ Depois abra:
 [http://localhost:8080](http://localhost:8080)
 
 ## 4. Validacao rapida
-
-```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\smoke-check.ps1
-```
-
-Ou:
 
 ```powershell
 npm run smoke
@@ -111,6 +99,8 @@ Use o backend PHP em [public/api/index.php](/C:/Users/Ac/Documents/Finance/publi
 5. registrar no Google Cloud a URL `https://SEU_DOMINIO/api/auth/google/callback`
 
 Se o app ficar em subpasta, a URL de callback muda junto. O passo a passo completo ficou em [HOSTGATOR.md](/C:/Users/Ac/Documents/Finance/HOSTGATOR.md).
+
+Se voce quiser rodar o mesmo backend Node.js em producao, o hosting precisa aceitar processo Node persistente. Em hospedagem compartilhada comum da HostGator, o caminho mais seguro continua sendo o adapter PHP.
 
 ## 7. Sincronizacao
 

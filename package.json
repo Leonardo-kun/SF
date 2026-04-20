@@ -1,11 +1,11 @@
 {
   "name": "sf",
   "version": "1.0.0",
-  "description": "SF e o app principal do projeto, com interface em public/index.html e sincronizacao opcional com Google Drive.",
-  "main": "index.js",
+  "description": "SF e o app principal do projeto, com interface em public/index.html e backend Node.js para OAuth e Google Drive.",
+  "main": "scripts/server.js",
   "scripts": {
-    "start": "powershell -ExecutionPolicy Bypass -File .\\scripts\\server.ps1",
-    "smoke": "powershell -ExecutionPolicy Bypass -File .\\scripts\\smoke-check.ps1",
+    "start": "node ./scripts/server.js",
+    "smoke": "node ./scripts/smoke-check.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

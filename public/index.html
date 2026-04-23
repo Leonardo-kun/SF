@@ -1,2629 +1,1676 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0"/>
-<title>SF — Sistema Financeiro Pessoal</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet"/>
-<script src="./drive-config.js"></script>
-<style>
-*{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --bg:#ffffff;--bg2:#f5f4f0;--bg3:#ebebeb;
-  --text:#1a1a1a;--text2:#6b6b6b;--text3:#9a9a9a;
-  --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);
-  --green:#3B6D11;--green-bg:#EAF3DE;
-  --red:#A32D2D;--red-bg:#FCEBEB;
-  --amber:#BA7517;--amber-bg:#FAEEDA;
-  --blue:#185FA5;--blue-bg:#E6F1FB;
-  --radius:14px;--radius-sm:10px;
-}
-@media(prefers-color-scheme:dark){
-  :root{
-    --bg:#1a1a1a;--bg2:#242424;--bg3:#2e2e2e;
-    --text:#f0f0f0;--text2:#a0a0a0;--text3:#6a6a6a;
-    --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.18);
-    --green:#97C459;--green-bg:#173404;
-    --red:#F09595;--red-bg:#501313;
-    --amber:#EF9F27;--amber-bg:#412402;
-    --blue:#85B7EB;--blue-bg:#042C53;
-  }
-}
-body{font-family:'DM Sans',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh;padding-bottom:80px}
-.app-shell{max-width:480px;margin:0 auto;background:var(--bg);min-height:100vh;position:relative;box-shadow:0 0 40px rgba(0,0,0,.15)}
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>SF</title>
+  <script defer src="./drive-config.js"></script>
+  <style>
+    :root {
+      color-scheme: light;
+      --bg: #f6f1e8;
+      --surface: rgba(255, 255, 255, 0.82);
+      --surface-strong: #ffffff;
+      --line: rgba(36, 43, 34, 0.12);
+      --text: #243226;
+      --muted: #6f7a6f;
+      --accent: #1f6b52;
+      --accent-2: #d58b2a;
+      --danger: #c65745;
+      --good: #1a7f5a;
+      --shadow: 0 18px 45px rgba(34, 41, 31, 0.12);
+      --radius: 22px;
+      --radius-sm: 16px;
+      --font-title: "Georgia", "Times New Roman", serif;
+      --font-body: "Segoe UI", system-ui, sans-serif;
+    }
 
-/* LOGIN */
-.login-gate{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:24px;background:
-  radial-gradient(circle at top, rgba(24,95,165,.18), transparent 38%),
-  linear-gradient(180deg,var(--bg) 0%,var(--bg2) 100%);
-  z-index:500}
-.login-gate.hidden{display:none}
-.login-card{width:min(100%,420px);background:rgba(255,255,255,.68);backdrop-filter:blur(14px);border:0.5px solid var(--border2);border-radius:26px;padding:34px 26px;text-align:center;box-shadow:0 18px 60px rgba(0,0,0,.12)}
-@media(prefers-color-scheme:dark){
-  .login-card{background:rgba(36,36,36,.82)}
-}
-.login-mark{width:76px;height:76px;border-radius:22px;background:var(--text);color:var(--bg);display:flex;align-items:center;justify-content:center;font-family:'Space Mono',monospace;font-size:28px;font-weight:700;letter-spacing:-1px;margin:0 auto 18px}
-.login-title{font-size:32px;font-weight:600;letter-spacing:-1.2px;margin-bottom:8px}
-.login-subtitle{font-size:13px;line-height:1.6;color:var(--text2);margin-bottom:22px}
-.login-enter{width:100%;padding:15px 18px;border:none;border-radius:14px;background:var(--text);color:var(--bg);font-size:14px;font-weight:600;font-family:'DM Sans',sans-serif;cursor:pointer;text-transform:lowercase}
-.login-enter:hover{transform:translateY(-1px)}
+    * { box-sizing: border-box; }
 
-/* TOP BAR */
-.topbar{display:flex;justify-content:space-between;align-items:center;padding:16px 20px 0;position:sticky;top:0;background:var(--bg);z-index:50;border-bottom:0.5px solid var(--border)}
-.topbar-left h1{font-size:18px;font-weight:600;letter-spacing:-.5px}
-.topbar-left p{font-size:11px;color:var(--text2);margin-top:1px}
-.topbar-right{font-size:11px;color:var(--text2)}
-.cloud-strip{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 20px 0;background:var(--bg)}
-.cloud-copy{min-width:0}
-.cloud-label{font-size:10px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.7px;margin-bottom:4px}
-.cloud-status{font-size:12px;font-weight:500;color:var(--text)}
-.cloud-status.ok{color:var(--green)}
-.cloud-status.warn{color:var(--amber)}
-.cloud-status.idle{color:var(--text2)}
-.cloud-actions{display:flex;gap:8px;flex-shrink:0}
-.cloud-btn{padding:9px 12px;border-radius:10px;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text);font-size:12px;font-family:'DM Sans',sans-serif;cursor:pointer;transition:opacity .15s,transform .15s}
-.cloud-btn.primary{background:var(--text);color:var(--bg);border-color:var(--text)}
-.cloud-btn:disabled{opacity:.45;cursor:not-allowed;transform:none}
+    body {
+      margin: 0;
+      font-family: var(--font-body);
+      color: var(--text);
+      background:
+        radial-gradient(circle at top left, rgba(213, 139, 42, 0.18), transparent 30%),
+        radial-gradient(circle at top right, rgba(31, 107, 82, 0.16), transparent 28%),
+        linear-gradient(180deg, #f9f5ef 0%, #efe7d9 100%);
+      min-height: 100vh;
+    }
 
-/* BOTTOM NAV */
-.bottom-nav{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:480px;background:var(--bg);border-top:0.5px solid var(--border);display:flex;z-index:100;padding-bottom:env(safe-area-inset-bottom)}
-.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;padding:10px 4px 8px;gap:3px;cursor:pointer;border:none;background:none;color:var(--text2);font-size:9px;font-family:'DM Sans',sans-serif;transition:color .2s}
-.nav-item.active{color:var(--text)}
-.nav-icon{font-size:18px;line-height:1}
+    button, input, select, textarea {
+      font: inherit;
+    }
 
-/* SCREENS */
-.screen{display:none;padding:16px 20px;animation:fadeIn .2s ease}
-.screen.active{display:block}
-@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+    .hidden { display: none !important; }
 
-/* CARDS */
-.balance-hero{background:var(--text);color:var(--bg);border-radius:20px;padding:22px;margin-bottom:16px;position:relative;overflow:hidden}
-.balance-hero::after{content:'';position:absolute;width:160px;height:160px;border-radius:50%;background:rgba(255,255,255,.04);top:-50px;right:-50px}
-.hero-label{font-size:10px;opacity:.6;text-transform:uppercase;letter-spacing:.8px;margin-bottom:6px}
-.hero-value{font-family:'Space Mono',monospace;font-size:34px;font-weight:700;letter-spacing:-1.5px;margin-bottom:16px}
-.hero-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.hero-mini{background:rgba(255,255,255,.1);border-radius:10px;padding:10px 12px}
-.hero-mini-label{font-size:10px;opacity:.55;margin-bottom:3px}
-.hero-mini-val{font-family:'Space Mono',monospace;font-size:15px;font-weight:700}
-.section-title{font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.7px;margin:20px 0 10px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:4px}
-.metric{background:var(--bg2);border-radius:var(--radius-sm);padding:12px;border:0.5px solid var(--border)}
-.metric-lbl{font-size:10px;color:var(--text2);margin-bottom:4px}
-.metric-val{font-family:'Space Mono',monospace;font-size:19px;font-weight:700}
-.metric-val.green{color:var(--green)}
-.metric-val.red{color:var(--red)}
+    .gate {
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
 
-/* SCORE */
-.score-card{display:flex;align-items:center;gap:14px;background:var(--bg2);border-radius:var(--radius);padding:14px;margin-bottom:6px;border:0.5px solid var(--border)}
+    .gate-card,
+    .app-shell {
+      width: min(1120px, 100%);
+      background: var(--surface);
+      backdrop-filter: blur(16px);
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      box-shadow: var(--shadow);
+      border-radius: 30px;
+    }
 
-/* ALERTS */
-.alert{display:flex;gap:8px;align-items:flex-start;padding:11px 13px;border-radius:var(--radius-sm);margin-bottom:6px;font-size:12px;line-height:1.5}
-.alert.danger{background:var(--red-bg);color:var(--red)}
-.alert.warn{background:var(--amber-bg);color:var(--amber)}
-.alert.info{background:var(--blue-bg);color:var(--blue)}
-.alert-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:4px;background:currentColor}
+    .gate-card {
+      max-width: 520px;
+      padding: 44px;
+      text-align: center;
+    }
 
-/* GOALS */
-.goal-card{background:var(--bg2);border-radius:var(--radius);padding:13px;margin-bottom:8px;border:0.5px solid var(--border)}
-.goal-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px}
-.goal-name{font-size:13px;font-weight:500}
-.goal-pct{font-family:'Space Mono',monospace;font-size:12px;color:var(--text2)}
-.track{background:var(--border);border-radius:99px;height:5px;overflow:hidden;margin-bottom:6px}
-.fill{height:100%;border-radius:99px;transition:width .8s cubic-bezier(.16,1,.3,1)}
-.goal-sub{display:flex;justify-content:space-between;font-size:11px;color:var(--text2)}
+    .eyebrow {
+      margin: 0 0 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.78rem;
+      color: var(--accent);
+      font-weight: 700;
+    }
 
-/* TRANSACTIONS */
-.tx-group-label{font-size:11px;color:var(--text2);font-weight:500;margin:14px 0 6px;padding:0 2px}
-.tx-item{display:flex;align-items:center;gap:10px;padding:11px 12px;background:var(--bg2);border-radius:var(--radius-sm);margin-bottom:4px;border:0.5px solid var(--border);cursor:pointer;transition:background .15s}
-.tx-item:hover{background:var(--bg3)}
-.tx-cat{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.tx-info{flex:1;min-width:0}
-.tx-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.tx-sub{font-size:11px;color:var(--text2);margin-top:1px}
-.tx-amount{font-family:'Space Mono',monospace;font-size:13px;font-weight:700;flex-shrink:0}
-.tx-amount.out{color:var(--red)}
-.tx-amount.in{color:var(--green)}
-.badge{display:inline-block;padding:1px 7px;border-radius:99px;font-size:10px;font-weight:500;margin-left:4px;vertical-align:middle}
-.badge.impulso{background:var(--amber-bg);color:var(--amber)}
-.badge.essencial{background:var(--green-bg);color:var(--green)}
+    h1, h2, h3 {
+      font-family: var(--font-title);
+      margin: 0;
+      font-weight: 700;
+    }
 
-/* PRIO / STATUS BADGES */
-.prio{font-size:10px;padding:2px 8px;border-radius:99px;font-weight:500}
-.prio.alta{background:var(--red-bg);color:var(--red)}
-.prio.media{background:var(--amber-bg);color:var(--amber)}
-.prio.baixa{background:var(--green-bg);color:var(--green)}
-.status-badge{font-size:10px;padding:2px 8px;border-radius:99px}
-.status-ativo{background:var(--red-bg);color:var(--red)}
-.status-quitado{background:var(--green-bg);color:var(--green)}
+    .gate h1 {
+      font-size: clamp(2.1rem, 4vw, 3.3rem);
+      line-height: 1.02;
+      margin-bottom: 14px;
+    }
 
-/* DEBT CARD */
-.debt-card{background:var(--bg2);border-radius:var(--radius);padding:13px;margin-bottom:8px;border:0.5px solid var(--border)}
-.debt-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px}
-.debt-vals{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;margin-top:10px;text-align:center}
-.debt-val-num{font-size:12px;font-weight:600;font-family:'Space Mono',monospace}
-.debt-val-lbl{font-size:10px;color:var(--text2);margin-top:2px}
+    .gate p {
+      color: var(--muted);
+      line-height: 1.6;
+    }
 
-/* ERROR CARD */
-.err-card{background:var(--bg2);border-radius:var(--radius);padding:13px;margin-bottom:8px;border:0.5px solid var(--border)}
-.grav{font-size:10px;padding:2px 8px;border-radius:99px}
-.grav.alto{background:var(--red-bg);color:var(--red)}
-.grav.medio{background:var(--amber-bg);color:var(--amber)}
-.grav.leve{background:var(--green-bg);color:var(--green)}
-.err-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:8px}
-.chip{font-size:10px;background:var(--bg);border:0.5px solid var(--border);border-radius:99px;padding:3px 9px;color:var(--text2)}
-.solucao-box{margin-top:10px;padding-top:10px;border-top:0.5px solid var(--border);font-size:11px;color:var(--text2);line-height:1.6}
+    .primary,
+    .secondary,
+    .nav-button {
+      border: 0;
+      border-radius: 999px;
+      padding: 14px 24px;
+      cursor: pointer;
+      transition: transform 0.18s ease, opacity 0.18s ease, background 0.18s ease;
+    }
 
-/* REPORT */
-.report-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:0.5px solid var(--border);font-size:13px}
-.report-row:last-child{border:none}
-.report-lbl{color:var(--text2)}
-.report-vals{display:flex;gap:12px;font-family:'Space Mono',monospace;font-size:12px}
-.this{font-weight:600;color:var(--text)}
-.prev{color:var(--text3)}
-.delta.up{color:var(--red)}
-.delta.dn{color:var(--green)}
-.report-box{background:var(--bg2);border-radius:var(--radius);padding:14px;border:0.5px solid var(--border);margin-bottom:12px}
+    .primary:hover,
+    .secondary:hover,
+    .nav-button:hover {
+      transform: translateY(-1px);
+    }
 
-/* SCORE INSIGHTS */
-.insight-card{display:flex;gap:10px;background:var(--bg2);border-radius:var(--radius);padding:12px;border:0.5px solid var(--border);margin-bottom:8px}
-.insight-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
-.insight-title{font-size:12px;font-weight:600;margin-bottom:3px}
-.insight-body{font-size:11px;color:var(--text2);line-height:1.55}
+    .primary {
+      background: var(--text);
+      color: #fff;
+      min-width: 160px;
+      margin-top: 18px;
+    }
 
-/* FAB */
-.fab{position:fixed;bottom:calc(70px + env(safe-area-inset-bottom));right:calc(50% - 220px);width:52px;height:52px;border-radius:50%;background:var(--text);color:var(--bg);font-size:26px;display:flex;align-items:center;justify-content:center;border:none;cursor:pointer;box-shadow:0 4px 16px rgba(0,0,0,.25);z-index:90;transition:transform .15s}
-.fab:hover{transform:scale(1.07)}
-@media(max-width:480px){.fab{right:20px}}
+    .secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--line);
+    }
 
-/* MODAL */
-.overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:200;align-items:flex-end;justify-content:center}
-.overlay.open{display:flex}
-.modal{background:var(--bg);border-radius:22px 22px 0 0;padding:22px 20px;width:100%;max-width:480px;animation:slideUp .28s cubic-bezier(.16,1,.3,1);max-height:92vh;overflow-y:auto}
-@keyframes slideUp{from{transform:translateY(100%)}to{transform:translateY(0)}}
-.modal-title{font-size:16px;font-weight:600;margin-bottom:16px}
-.tipo-row{display:flex;gap:8px;margin-bottom:14px}
-.tipo-btn{flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:500;cursor:pointer;border:0.5px solid var(--border2);background:var(--bg2);color:var(--text2);font-family:'DM Sans',sans-serif;transition:all .15s}
-.tipo-btn.sel-s{background:var(--red-bg);color:var(--red);border-color:var(--red)}
-.tipo-btn.sel-e{background:var(--green-bg);color:var(--green);border-color:var(--green)}
-.form-group{margin-bottom:12px}
-.form-label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
-.form-input,.form-select{width:100%;padding:11px 13px;border:0.5px solid var(--border2);border-radius:10px;font-size:13px;background:var(--bg2);color:var(--text);font-family:'DM Sans',sans-serif;outline:none}
-.form-input:focus,.form-select:focus{border-color:var(--text)}
-.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.modal-btns{display:flex;gap:8px;margin-top:16px}
-.btn-cancel{flex:1;padding:13px;background:var(--bg2);border:0.5px solid var(--border);border-radius:11px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif;color:var(--text)}
-.btn-save{flex:2;padding:13px;background:var(--text);color:var(--bg);border:none;border-radius:11px;font-size:13px;font-weight:600;cursor:pointer;font-family:'DM Sans',sans-serif}
-.btn-danger{flex:1;padding:13px;background:var(--red-bg);color:var(--red);border:none;border-radius:11px;font-size:13px;cursor:pointer;font-family:'DM Sans',sans-serif}
+    .secondary:disabled,
+    .primary:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
 
-/* TOAST */
-.toast{position:fixed;bottom:calc(80px + env(safe-area-inset-bottom));left:50%;transform:translateX(-50%) translateY(20px);background:var(--text);color:var(--bg);padding:10px 20px;border-radius:99px;font-size:12px;font-weight:500;opacity:0;transition:all .3s;z-index:300;white-space:nowrap}
-.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    .app-shell {
+      margin: 18px auto;
+      padding: 24px;
+    }
 
-/* EMPTY STATE */
-.empty{text-align:center;padding:40px 20px;color:var(--text2)}
-.empty-icon{font-size:40px;margin-bottom:10px}
-.empty-text{font-size:13px}
+    .topbar,
+    .cloud-strip,
+    .summary-grid,
+    .dashboard-grid,
+    .form-grid,
+    .list-grid,
+    .nav-row {
+      display: grid;
+      gap: 16px;
+    }
 
-/* CHART WRAP */
-.chart-box{background:var(--bg2);border-radius:var(--radius);padding:14px;border:0.5px solid var(--border);margin-bottom:6px}
-.chart-legend{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
-.leg-item{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2)}
-.leg-dot{width:9px;height:9px;border-radius:2px;flex-shrink:0}
+    .topbar {
+      grid-template-columns: 1.2fr auto;
+      align-items: start;
+    }
 
-/* DELETE BTN inline */
-.del-btn{background:none;border:none;color:var(--text3);font-size:16px;cursor:pointer;padding:4px 6px;border-radius:6px;transition:color .15s}
-.del-btn:hover{color:var(--red)}
-</style>
+    .topbar h1 {
+      font-size: clamp(2rem, 4vw, 3rem);
+      margin-top: 6px;
+    }
+
+    .badge {
+      border-radius: 999px;
+      padding: 10px 16px;
+      background: rgba(31, 107, 82, 0.1);
+      color: var(--accent);
+      font-weight: 700;
+      justify-self: end;
+    }
+
+    .cloud-strip {
+      grid-template-columns: 1fr auto auto;
+      align-items: center;
+      padding: 18px 20px;
+      margin-top: 18px;
+      border-radius: 24px;
+      background: rgba(24, 31, 26, 0.94);
+      color: #fff;
+    }
+
+    .cloud-strip strong {
+      display: block;
+      font-size: 0.78rem;
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+      color: rgba(255, 255, 255, 0.62);
+      margin-bottom: 6px;
+    }
+
+    .cloud-strip p {
+      margin: 0;
+      color: #f9f2df;
+    }
+
+    .cloud-strip .secondary {
+      color: #fff;
+      border-color: rgba(255, 255, 255, 0.24);
+    }
+
+    .summary-grid {
+      margin-top: 20px;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+
+    .card,
+    .panel,
+    .list-item {
+      background: var(--surface-strong);
+      border: 1px solid var(--line);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 26px rgba(34, 41, 31, 0.06);
+    }
+
+    .card {
+      padding: 20px;
+    }
+
+    .card small,
+    .panel small {
+      display: block;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.75rem;
+      margin-bottom: 10px;
+    }
+
+    .card strong {
+      font-size: 1.65rem;
+      font-family: var(--font-title);
+    }
+
+    .dashboard-grid {
+      grid-template-columns: 1.15fr 0.85fr;
+      margin-top: 18px;
+      align-items: start;
+    }
+
+    .panel {
+      padding: 22px;
+    }
+
+    .panel h2 {
+      font-size: 1.65rem;
+      margin-bottom: 12px;
+    }
+
+    .section {
+      margin-top: 20px;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-bottom: 14px;
+    }
+
+    .section-header p {
+      margin: 6px 0 0;
+      color: var(--muted);
+    }
+
+    .form-grid {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      margin-top: 14px;
+    }
+
+    label {
+      display: grid;
+      gap: 8px;
+      color: var(--muted);
+      font-size: 0.92rem;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid rgba(36, 43, 34, 0.14);
+      border-radius: var(--radius-sm);
+      padding: 12px 14px;
+      background: rgba(246, 241, 232, 0.9);
+      color: var(--text);
+    }
+
+    textarea {
+      min-height: 110px;
+      resize: vertical;
+    }
+
+    .span-2 { grid-column: span 2; }
+    .span-4 { grid-column: span 4; }
+
+    .actions-row {
+      display: flex;
+      gap: 12px;
+      margin-top: 16px;
+      flex-wrap: wrap;
+    }
+
+    .list-grid {
+      margin-top: 16px;
+    }
+
+    .list-item {
+      padding: 18px;
+      display: grid;
+      gap: 8px;
+    }
+
+    .item-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      align-items: center;
+    }
+
+    .item-title {
+      font-size: 1.08rem;
+      font-weight: 700;
+    }
+
+    .item-meta,
+    .empty-state {
+      color: var(--muted);
+      line-height: 1.55;
+    }
+
+    .tag-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .tag {
+      padding: 7px 10px;
+      border-radius: 999px;
+      background: rgba(31, 107, 82, 0.08);
+      color: var(--accent);
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .tag.warn {
+      background: rgba(213, 139, 42, 0.12);
+      color: #9f6312;
+    }
+
+    .tag.danger {
+      background: rgba(198, 87, 69, 0.12);
+      color: var(--danger);
+    }
+
+    .metric-list,
+    .insight-list {
+      display: grid;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .metric-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 16px;
+      padding-bottom: 10px;
+      border-bottom: 1px dashed var(--line);
+    }
+
+    .progress {
+      width: 100%;
+      height: 10px;
+      border-radius: 999px;
+      background: rgba(36, 43, 34, 0.08);
+      overflow: hidden;
+      margin-top: 10px;
+    }
+
+    .progress > span {
+      display: block;
+      height: 100%;
+      background: linear-gradient(90deg, var(--accent), #56a278);
+      border-radius: inherit;
+    }
+
+    .score-card {
+      display: grid;
+      grid-template-columns: 180px 1fr;
+      gap: 18px;
+      align-items: center;
+    }
+
+    .score-ring {
+      width: 180px;
+      aspect-ratio: 1;
+      border-radius: 50%;
+      display: grid;
+      place-items: center;
+      background: conic-gradient(var(--accent) var(--score-angle, 220deg), rgba(36, 43, 34, 0.08) 0);
+      position: relative;
+    }
+
+    .score-ring::after {
+      content: "";
+      position: absolute;
+      inset: 18px;
+      border-radius: 50%;
+      background: var(--surface-strong);
+    }
+
+    .score-ring strong {
+      position: relative;
+      z-index: 1;
+      font-size: 2.4rem;
+      font-family: var(--font-title);
+    }
+
+    .nav-row {
+      grid-template-columns: repeat(6, minmax(0, 1fr));
+      position: sticky;
+      bottom: 0;
+      margin-top: 22px;
+      padding: 10px;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.88);
+      border: 1px solid rgba(36, 43, 34, 0.08);
+      backdrop-filter: blur(10px);
+    }
+
+    .nav-button {
+      background: transparent;
+      color: var(--muted);
+      font-weight: 700;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .nav-button.is-active {
+      background: var(--text);
+      color: #fff;
+    }
+
+    .toast {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      background: rgba(24, 31, 26, 0.94);
+      color: #fff;
+      padding: 14px 18px;
+      border-radius: 16px;
+      box-shadow: var(--shadow);
+      max-width: 340px;
+      z-index: 20;
+    }
+
+    @media (max-width: 960px) {
+      .topbar,
+      .cloud-strip,
+      .summary-grid,
+      .dashboard-grid,
+      .score-card,
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .app-shell {
+        margin: 0;
+        min-height: 100vh;
+        border-radius: 0;
+        padding: 20px 16px calc(160px + env(safe-area-inset-bottom));
+      }
+
+      .cloud-strip {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .cloud-strip > div {
+        grid-column: 1 / -1;
+      }
+
+      .cloud-strip .secondary {
+        width: 100%;
+      }
+
+      .nav-row {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        position: fixed;
+        left: 12px;
+        right: 12px;
+        bottom: calc(12px + env(safe-area-inset-bottom));
+        margin-top: 0;
+        padding: 12px;
+        gap: 10px;
+        border-radius: 28px;
+        box-shadow: 0 22px 48px rgba(34, 41, 31, 0.16);
+        z-index: 15;
+      }
+
+      .nav-button {
+        min-height: 48px;
+        padding: 12px 14px;
+        font-size: 0.96rem;
+      }
+
+      .toast {
+        left: 12px;
+        right: 12px;
+        bottom: calc(132px + env(safe-area-inset-bottom));
+        max-width: none;
+      }
+
+      .badge { justify-self: start; }
+      .score-ring { margin-inline: auto; }
+      .span-2,
+      .span-4 { grid-column: auto; }
+    }
+
+    @media (max-width: 640px) {
+      .nav-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+  </style>
 </head>
 <body>
-<div id="login-gate" class="login-gate">
-  <div class="login-card">
-    <div class="login-mark">SF</div>
-    <div class="login-title">SF</div>
-    <div class="login-subtitle">Seu painel financeiro pessoal com acesso simples e sincronização em nuvem.</div>
-    <button class="login-enter" onclick="enterApp()">entrar</button>
-  </div>
-</div>
-<div class="app-shell">
-
-  <!-- TOP BAR -->
-  <div class="topbar" style="padding-bottom:12px">
-    <div class="topbar-left">
-      <h1>Sistema Financeiro</h1>
-      <p id="topbar-date">Carregando...</p>
-    </div>
-    <div class="topbar-right" id="topbar-month"></div>
-  </div>
-  <div class="cloud-strip">
-    <div class="cloud-copy">
-      <div class="cloud-label">Backup em nuvem</div>
-      <div id="drive-status" class="cloud-status idle">Drive não configurado</div>
-    </div>
-    <div class="cloud-actions">
-      <button id="drive-auth-btn" class="cloud-btn primary" onclick="connectDrive()">Conectar</button>
-      <button id="drive-sync-btn" class="cloud-btn" onclick="manualDriveSync()" disabled>Sincronizar</button>
+  <div id="loginGate" class="gate">
+    <div class="gate-card">
+      <p class="eyebrow">SF</p>
+      <h1>Controle financeiro com entrada simples</h1>
+      <p id="gateHint">Clique em entrar para continuar.</p>
+      <button id="enterButton" class="primary" type="button">entrar</button>
     </div>
   </div>
 
-  <!-- SCREENS -->
-  <div id="s-dashboard" class="screen active">
-    <div id="hero-card" class="balance-hero"></div>
-    <div id="score-block"></div>
-    <div class="section-title">Resumo do mês</div>
-    <div class="grid2" id="summary-grid"></div>
-    <div class="section-title">Gastos por categoria</div>
-    <div class="chart-box">
-      <div class="chart-legend" id="cat-legend"></div>
-      <div style="position:relative;height:180px"><canvas id="catChart" role="img" aria-label="Gráfico de gastos por categoria"></canvas></div>
-    </div>
-    <div class="section-title">Alertas</div>
-    <div id="alerts-block"></div>
-    <div class="section-title">Progresso de metas</div>
-    <div id="goals-mini"></div>
-  </div>
-
-  <div id="s-transacoes" class="screen">
-    <div class="section-title" style="margin-top:4px">Transações do mês</div>
-    <div id="tx-list"></div>
-  </div>
-
-  <div id="s-metas" class="screen">
-    <button class="btn-save" style="width:100%;margin-bottom:16px;margin-top:4px;border-radius:11px;padding:13px;font-size:13px;cursor:pointer" onclick="openModal('meta')">+ Nova meta</button>
-    <div class="section-title" style="margin-top:0">Metas ativas</div>
-    <div id="metas-list"></div>
-  </div>
-
-  <div id="s-dividas" class="screen">
-    <button class="btn-save" style="width:100%;margin-bottom:16px;margin-top:4px;border-radius:11px;padding:13px;font-size:13px;cursor:pointer" onclick="openModal('divida')">+ Registrar dívida</button>
-    <div class="section-title" style="margin-top:0">Dívidas registradas</div>
-    <div id="dividas-list"></div>
-  </div>
-
-  <div id="s-erros" class="screen">
-    <button class="btn-save" style="width:100%;margin-bottom:16px;margin-top:4px;border-radius:11px;padding:13px;font-size:13px;cursor:pointer" onclick="openModal('erro')">+ Registrar ponto crítico</button>
-    <div class="section-title" style="margin-top:0">Pontos críticos</div>
-    <div id="erros-list"></div>
-  </div>
-
-  <div id="s-relatorio" class="screen">
-    <div class="section-title" style="margin-top:4px">Relatório mensal</div>
-    <div id="relatorio-content"></div>
-  </div>
-
-  <div id="s-score" class="screen">
-    <div class="section-title" style="margin-top:4px">Insights automáticos</div>
-    <div id="insights-block"></div>
-    <div class="section-title">Score financeiro — regras</div>
-    <div class="report-box">
-      <div class="report-row"><span class="report-lbl">Contas em dia</span><span style="color:var(--green);font-weight:600">+25 pts</span></div>
-      <div class="report-row"><span class="report-lbl">Gastos dentro dos limites</span><span style="color:var(--green);font-weight:600">+25 pts</span></div>
-      <div class="report-row"><span class="report-lbl">Progresso em metas</span><span style="color:var(--green);font-weight:600">+20 pts</span></div>
-      <div class="report-row"><span class="report-lbl">Sem reincidência de erros</span><span style="color:var(--green);font-weight:600">+10 pts</span></div>
-      <div class="report-row"><span class="report-lbl">Reserva crescendo</span><span style="color:var(--green);font-weight:600">+10 pts</span></div>
-      <div class="report-row"><span class="report-lbl">Cada gasto impulsivo</span><span style="color:var(--red);font-weight:600">-5 pts</span></div>
-      <div class="report-row"><span class="report-lbl">Categoria acima do limite</span><span style="color:var(--red);font-weight:600">-5 pts</span></div>
-      <div class="report-row"><span class="report-lbl">Atraso em conta</span><span style="color:var(--red);font-weight:600">-15 pts</span></div>
-    </div>
-  </div>
-
-</div><!-- app-shell -->
-
-<!-- FAB -->
-<button class="fab" onclick="openModal('tx')" aria-label="Adicionar transação">+</button>
-
-<!-- BOTTOM NAV -->
-<nav class="bottom-nav">
-  <button class="nav-item active" onclick="nav('dashboard',this)"><span class="nav-icon">D</span>Dashboard</button>
-  <button class="nav-item" onclick="nav('transacoes',this)"><span class="nav-icon">T</span>Transações</button>
-  <button class="nav-item" onclick="nav('metas',this)"><span class="nav-icon">M</span>Metas</button>
-  <button class="nav-item" onclick="nav('dividas',this)"><span class="nav-icon">D</span>Dívidas</button>
-  <button class="nav-item" onclick="nav('erros',this)"><span class="nav-icon">E</span>Erros</button>
-  <button class="nav-item" onclick="nav('relatorio',this)"><span class="nav-icon">R</span>Relatório</button>
-  <button class="nav-item" onclick="nav('score',this)"><span class="nav-icon">S</span>Score</button>
-</nav>
-
-<!-- MODAL CONTAINER -->
-<div class="overlay" id="overlay" onclick="overlayClick(event)">
-  <div class="modal" id="modal-box"></div>
-</div>
-
-<!-- TOAST -->
-<div class="toast" id="toast"></div>
-
-<script>
-// ── DATA LAYER ──────────────────────────────────────────────
-const STORAGE_PREFIX = 'sf_';
-const LEGACY_STORAGE_PREFIX = 'fos_';
-const APP_DRIVE_CONFIG = window.SF_DRIVE_CONFIG || window.FINANCEOS_DRIVE_CONFIG || {};
-
-const DB = {
-  getRaw(key){
-    try{return localStorage.getItem(key)}catch{return null}
-  },
-  setRaw(key,value){
-    try{
-      if(value===null||value===undefined) localStorage.removeItem(key);
-      else localStorage.setItem(key,value);
-    }catch{}
-  },
-  get(k){
-    try{
-      const current = this.getRaw(STORAGE_PREFIX + k);
-      if(current!==null) return JSON.parse(current);
-      const legacy = this.getRaw(LEGACY_STORAGE_PREFIX + k);
-      if(legacy!==null){
-        this.setRaw(STORAGE_PREFIX + k, legacy);
-        return JSON.parse(legacy);
-      }
-      return null;
-    }catch{
-      return null;
-    }
-  },
-  set(k,v){
-    try{this.setRaw(STORAGE_PREFIX + k, JSON.stringify(v))}catch{}
-  },
-};
-
-const STATE_META_KEY = 'state_meta';
-const CONFLICT_BACKUP_KEY = 'conflict_backup';
-const APP_GATE_KEY = 'app_gate';
-const DRIVE_SESSION_KEY = 'drive_session';
-
-function normalizeState(data){
-  const source = data && typeof data === 'object' ? data : {};
-  return {
-    transactions: Array.isArray(source.transactions) ? source.transactions : [],
-    metas: Array.isArray(source.metas) ? source.metas : [],
-    dividas: Array.isArray(source.dividas) ? source.dividas : [],
-    erros: Array.isArray(source.erros) ? source.erros : [],
-  };
-}
-
-function loadData(){
-  return normalizeState({
-    transactions: DB.get('tx'),
-    metas: DB.get('metas'),
-    dividas: DB.get('dividas'),
-    erros: DB.get('erros'),
-  });
-}
-
-function isoNow(){
-  return new Date().toISOString();
-}
-
-function parseTimestamp(value){
-  const parsed = Date.parse(value || '');
-  return Number.isFinite(parsed) ? parsed : 0;
-}
-
-function isStateEmpty(data){
-  const snapshot = normalizeState(data);
-  return Object.values(snapshot).every(arr=>arr.length===0);
-}
-
-function readStateMeta(){
-  const meta = DB.get(STATE_META_KEY) || {};
-  return {
-    updatedAt: typeof meta.updatedAt === 'string' ? meta.updatedAt : '',
-    lastSyncedAt: typeof meta.lastSyncedAt === 'string' ? meta.lastSyncedAt : '',
-    lastSource: typeof meta.lastSource === 'string' ? meta.lastSource : 'local',
-  };
-}
-
-function writeStateMeta(meta){
-  const nextMeta = {...readStateMeta(), ...meta};
-  DB.set(STATE_META_KEY, nextMeta);
-  return nextMeta;
-}
-
-function persistConflictBackup(envelope, reason){
-  DB.set(CONFLICT_BACKUP_KEY, {
-    savedAt: isoNow(),
-    reason,
-    envelope,
-  });
-}
-
-function persistLocalData(data, metaOverrides = {}){
-  const snapshot = normalizeState(data);
-  DB.set('tx', snapshot.transactions);
-  DB.set('metas', snapshot.metas);
-  DB.set('dividas', snapshot.dividas);
-  DB.set('erros', snapshot.erros);
-  STATE_META = writeStateMeta({
-    updatedAt: metaOverrides.updatedAt || STATE_META.updatedAt || isoNow(),
-    lastSyncedAt: metaOverrides.lastSyncedAt ?? STATE_META.lastSyncedAt,
-    lastSource: metaOverrides.lastSource || STATE_META.lastSource || 'local',
-  });
-  return snapshot;
-}
-
-const DRIVE_CONFIG = {
-  clientId: APP_DRIVE_CONFIG.clientId || '',
-  fileName: APP_DRIVE_CONFIG.fileName || 'sf-data.json',
-  legacyFileNames: Array.isArray(APP_DRIVE_CONFIG.legacyFileNames) && APP_DRIVE_CONFIG.legacyFileNames.length
-    ? APP_DRIVE_CONFIG.legacyFileNames
-    : ['financeos-data.json'],
-  autoSync: APP_DRIVE_CONFIG.autoSync !== false,
-  useAppDataFolder: APP_DRIVE_CONFIG.useAppDataFolder !== false,
-};
-
-const DRIVE = {
-  tokenClient: null,
-  accessToken: '',
-  fileId: '',
-  busy: false,
-  ready: false,
-};
-
-function hasEnteredApp(){
-  return Boolean(DB.get(APP_GATE_KEY)?.entered);
-}
-
-function setAppEntered(entered){
-  DB.set(APP_GATE_KEY, {
-    entered: Boolean(entered),
-    updatedAt: isoNow(),
-  });
-}
-
-function rememberDriveSession(active){
-  DB.set(DRIVE_SESSION_KEY, {
-    active: Boolean(active),
-    fileId: DRIVE.fileId || DB.get('drive_file_id') || '',
-    updatedAt: isoNow(),
-  });
-}
-
-function shouldRestoreDriveSession(){
-  return isDriveConfigured() && Boolean(DB.get(DRIVE_SESSION_KEY)?.active);
-}
-
-function isDriveConfigured(){
-  return Boolean(
-    DRIVE_CONFIG.clientId &&
-    DRIVE_CONFIG.clientId.endsWith('.apps.googleusercontent.com') &&
-    !DRIVE_CONFIG.clientId.includes('COLOQUE') &&
-    !DRIVE_CONFIG.clientId.includes('SEU_CLIENT_ID')
-  );
-}
-
-function setDriveStatus(label, tone='idle'){
-  const status = document.getElementById('drive-status');
-  if(!status) return;
-  status.textContent = label;
-  status.className = `cloud-status ${tone}`;
-}
-
-function updateDriveControls(){
-  const authBtn = document.getElementById('drive-auth-btn');
-  const syncBtn = document.getElementById('drive-sync-btn');
-  const backendActive = typeof BACKEND_AUTH !== 'undefined' && BACKEND_AUTH && BACKEND_AUTH.checked;
-  const hasStoredSession = backendActive ? BACKEND_AUTH.authenticated : shouldRestoreDriveSession();
-  const driveConfigured = backendActive ? BACKEND_AUTH.configured : isDriveConfigured();
-  if(authBtn){
-    authBtn.disabled = DRIVE.busy || !driveConfigured;
-    authBtn.textContent = hasStoredSession && DRIVE.ready ? (backendActive ? 'Sair' : 'Conectado') : (hasStoredSession ? 'Renovar' : 'Conectar');
-  }
-  if(syncBtn){
-    syncBtn.disabled = DRIVE.busy || (!DRIVE.ready && !hasStoredSession);
-  }
-}
-
-function createCloudEnvelope(data){
-  return {
-    version: 1,
-    updatedAt: STATE_META.updatedAt || isoNow(),
-    data: normalizeState(data),
-  };
-}
-
-function normalizeEnvelope(payload){
-  const source = payload && typeof payload === 'object' ? payload : {};
-  return {
-    version: typeof source.version === 'number' ? source.version : 1,
-    updatedAt: typeof source.updatedAt === 'string' ? source.updatedAt : '',
-    data: source.data ? normalizeState(source.data) : normalizeState(source),
-  };
-}
-
-function readCloudEnvelope(payload){
-  return normalizeEnvelope(payload).data;
-}
-
-function getLocalEnvelope(){
-  return normalizeEnvelope(createCloudEnvelope(DATA));
-}
-
-function applyEnvelopeLocally(envelope, source='local'){
-  const normalized = normalizeEnvelope(envelope);
-  DATA = persistLocalData(normalized.data, {
-    updatedAt: normalized.updatedAt || isoNow(),
-    lastSyncedAt: source === 'drive' || source === 'sync' ? (normalized.updatedAt || isoNow()) : STATE_META.lastSyncedAt,
-    lastSource: source,
-  });
-  return DATA;
-}
-
-function compareEnvelopeFreshness(localEnvelope, remoteEnvelope){
-  const localTs = parseTimestamp(localEnvelope?.updatedAt);
-  const remoteTs = parseTimestamp(remoteEnvelope?.updatedAt);
-  const lastSyncedTs = parseTimestamp(STATE_META.lastSyncedAt);
-  const localChangedSinceSync = localTs > lastSyncedTs;
-  const remoteChangedSinceSync = remoteTs > lastSyncedTs;
-  const conflict = localChangedSinceSync && remoteChangedSinceSync && localTs !== remoteTs;
-
-  if(!remoteEnvelope) return {winner:'local', conflict:false};
-  if(isStateEmpty(localEnvelope.data) && !isStateEmpty(remoteEnvelope.data)) return {winner:'remote', conflict:false};
-  if(isStateEmpty(remoteEnvelope.data) && !isStateEmpty(localEnvelope.data)) return {winner:'local', conflict:false};
-  if(remoteTs > localTs) return {winner:'remote', conflict};
-  if(localTs > remoteTs) return {winner:'local', conflict};
-  return {winner:'equal', conflict:false};
-}
-
-function escapeDriveQueryValue(value){
-  return String(value).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-}
-
-function setDriveBusy(isBusy){
-  DRIVE.busy = isBusy;
-  updateDriveControls();
-}
-
-function ensureDriveClient(){
-  if(!isDriveConfigured()){
-    throw new Error('Configure o clientId do Google Drive em drive-config.js.');
-  }
-  if(!window.google?.accounts?.oauth2){
-    throw new Error('A biblioteca do Google ainda não carregou. Tente novamente em alguns segundos.');
-  }
-  if(DRIVE.tokenClient) return DRIVE.tokenClient;
-  DRIVE.tokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: DRIVE_CONFIG.clientId,
-    scope: DRIVE_CONFIG.useAppDataFolder
-      ? 'https://www.googleapis.com/auth/drive.appdata'
-      : 'https://www.googleapis.com/auth/drive.file',
-    callback: () => {},
-  });
-  return DRIVE.tokenClient;
-}
-
-function requestDriveAccess(prompt='consent'){
-  return new Promise((resolve,reject)=>{
-    try{
-      const tokenClient = ensureDriveClient();
-      tokenClient.callback = response => {
-        if(response?.error){
-          reject(new Error(response.error));
-          return;
-        }
-        DRIVE.accessToken = response.access_token || '';
-        DRIVE.ready = Boolean(DRIVE.accessToken);
-        if(DRIVE.ready) rememberDriveSession(true);
-        setDriveStatus('Drive conectado','ok');
-        updateDriveControls();
-        resolve(response);
-      };
-      tokenClient.error_callback = err => reject(new Error(err?.type || 'Falha ao autenticar com o Google.'));
-      tokenClient.requestAccessToken({prompt});
-    }catch(error){
-      reject(error);
-    }
-  });
-}
-
-function getDriveRequestPrompt(){
-  return (DRIVE.ready || shouldRestoreDriveSession()) ? '' : 'consent';
-}
-
-function waitForGoogleIdentity(maxMs=6000){
-  return new Promise((resolve,reject)=>{
-    const startedAt = Date.now();
-    const check = ()=>{
-      if(window.google?.accounts?.oauth2){
-        resolve(true);
-        return;
-      }
-      if(Date.now() - startedAt >= maxMs){
-        reject(new Error('A biblioteca do Google nao carregou a tempo.'));
-        return;
-      }
-      setTimeout(check,100);
-    };
-    check();
-  });
-}
-
-async function restoreDriveSession(){
-  if(!shouldRestoreDriveSession()) return false;
-  try{
-    setDriveBusy(true);
-    setDriveStatus('Restaurando conexao...','warn');
-    await waitForGoogleIdentity();
-    await requestDriveAccess('');
-    const result = await syncDriveData();
-    if(result === 'error'){
-      throw new Error('Nao foi possivel restaurar a sessao do Drive.');
-    }
-    return true;
-  }catch(error){
-    console.error(error);
-    DRIVE.ready = false;
-    DRIVE.accessToken = '';
-    setDriveStatus('Conta conectada. Toque em Sincronizar para renovar.','idle');
-    updateDriveControls();
-    return false;
-  }finally{
-    setDriveBusy(false);
-  }
-}
-
-async function ensureDriveAccessForSync(){
-  if(DRIVE.ready || !shouldRestoreDriveSession()) return DRIVE.ready;
-  try{
-    setDriveBusy(true);
-    setDriveStatus('Renovando sessao...','warn');
-    await requestDriveAccess(getDriveRequestPrompt());
-    return DRIVE.ready;
-  }catch(error){
-    console.error(error);
-    DRIVE.ready = false;
-    DRIVE.accessToken = '';
-    setDriveStatus('Conta conectada. Toque em Sincronizar para renovar.','idle');
-    updateDriveControls();
-    return false;
-  }finally{
-    setDriveBusy(false);
-  }
-}
-
-async function driveFetch(url, options={}){
-  if(!DRIVE.accessToken){
-    throw new Error('Conecte o Google Drive antes de sincronizar.');
-  }
-  const headers = new Headers(options.headers || {});
-  headers.set('Authorization', `Bearer ${DRIVE.accessToken}`);
-  const response = await fetch(url,{...options,headers});
-  if(response.status===401){
-    DRIVE.ready = false;
-    DRIVE.accessToken = '';
-    setDriveStatus('Sessão expirada. Toque em Sincronizar para renovar.','warn');
-    updateDriveControls();
-    throw new Error('A sessão do Google expirou. Toque em Sincronizar para renovar.');
-  }
-  if(!response.ok){
-    const errorText = await response.text().catch(()=>'');
-    throw new Error(errorText || `Drive retornou ${response.status}.`);
-  }
-  return response;
-}
-
-function buildDriveFileSearchUrl(fileName){
-  const url = new URL('https://www.googleapis.com/drive/v3/files');
-  const name = escapeDriveQueryValue(fileName);
-  const baseQuery = `name='${name}' and trashed=false`;
-  url.searchParams.set('fields','files(id,name,modifiedTime)');
-  url.searchParams.set('pageSize','1');
-  if(DRIVE_CONFIG.useAppDataFolder){
-    url.searchParams.set('spaces','appDataFolder');
-    url.searchParams.set('q', `${baseQuery} and 'appDataFolder' in parents`);
-  }else{
-    url.searchParams.set('spaces','drive');
-    url.searchParams.set('q', baseQuery);
-  }
-  return url.toString();
-}
-
-async function getDriveFileById(fileId){
-  const url = new URL(`https://www.googleapis.com/drive/v3/files/${fileId}`);
-  url.searchParams.set('fields','id,name,modifiedTime');
-  const response = await driveFetch(url.toString());
-  return response.json();
-}
-
-async function findDriveFile(){
-  const candidateNames = [
-    DRIVE_CONFIG.fileName,
-    ...DRIVE_CONFIG.legacyFileNames.filter(name=>name && name!==DRIVE_CONFIG.fileName),
-  ];
-
-  for(const candidateName of candidateNames){
-    const response = await driveFetch(buildDriveFileSearchUrl(candidateName));
-    const payload = await response.json();
-    const file = payload.files?.[0];
-    if(file){
-      return {
-        ...file,
-        isLegacy: candidateName !== DRIVE_CONFIG.fileName,
-      };
-    }
-  }
-
-  return null;
-}
-
-async function createDriveFile(envelope){
-  const boundary = 'sf-' + Date.now();
-  const metadata = {name: DRIVE_CONFIG.fileName};
-  if(DRIVE_CONFIG.useAppDataFolder){
-    metadata.parents = ['appDataFolder'];
-  }
-  const body =
-    `--${boundary}\r\n` +
-    'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
-    `${JSON.stringify(metadata)}\r\n` +
-    `--${boundary}\r\n` +
-    'Content-Type: application/json; charset=UTF-8\r\n\r\n' +
-    `${JSON.stringify(envelope)}\r\n` +
-    `--${boundary}--`;
-  const response = await driveFetch('https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart',{
-    method:'POST',
-    headers:{'Content-Type':`multipart/related; boundary=${boundary}`},
-    body
-  });
-  return response.json();
-}
-
-async function renameDriveFile(fileId, fileName){
-  const response = await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}`,{
-    method:'PATCH',
-    headers:{'Content-Type':'application/json; charset=UTF-8'},
-    body:JSON.stringify({name:fileName}),
-  });
-  return response.json();
-}
-
-async function ensurePreferredDriveFile(file){
-  if(!file?.id) return file;
-  if(file.name===DRIVE_CONFIG.fileName) return file;
-  if(!DRIVE_CONFIG.legacyFileNames.includes(file.name)) return file;
-
-  const renamed = await renameDriveFile(file.id, DRIVE_CONFIG.fileName);
-  return {
-    ...file,
-    ...renamed,
-    name: renamed.name || DRIVE_CONFIG.fileName,
-    isLegacy: false,
-  };
-}
-
-async function updateDriveFile(fileId, envelope){
-  const response = await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${fileId}?uploadType=media`,{
-    method:'PATCH',
-    headers:{'Content-Type':'application/json; charset=UTF-8'},
-    body:JSON.stringify(envelope),
-  });
-  return response.json();
-}
-
-async function fetchDriveEnvelope(fileId){
-  const response = await driveFetch(`https://www.googleapis.com/drive/v3/files/${fileId}?alt=media`);
-  return normalizeEnvelope(await response.json());
-}
-
-async function syncDriveData({manual=false, initial=false}={}){
-  if(!DRIVE.ready) return 'offline';
-  try{
-    setDriveBusy(true);
-    setDriveStatus('Sincronizando...','warn');
-
-    const localEnvelope = getLocalEnvelope();
-    let file = DRIVE.fileId ? await getDriveFileById(DRIVE.fileId).catch(()=>null) : null;
-    if(!file) file = await findDriveFile();
-
-    if(!file?.id){
-      const saved = await createDriveFile(localEnvelope);
-      DRIVE.fileId = saved.id || '';
-      DB.set('drive_file_id', DRIVE.fileId);
-      STATE_META = writeStateMeta({
-        updatedAt: localEnvelope.updatedAt,
-        lastSyncedAt: localEnvelope.updatedAt,
-        lastSource: 'sync',
-      });
-      setDriveStatus('Sincronizado com Drive','ok');
-      if(manual || initial) toast('Backup em nuvem criado com sucesso.');
-      return 'pushed';
-    }
-
-    file = await ensurePreferredDriveFile(file);
-    DRIVE.fileId = file.id;
-    DB.set('drive_file_id', DRIVE.fileId);
-
-    const remoteEnvelope = await fetchDriveEnvelope(file.id);
-    const resolution = compareEnvelopeFreshness(localEnvelope, remoteEnvelope);
-
-    if(resolution.conflict){
-      const backupEnvelope = resolution.winner === 'remote' ? localEnvelope : remoteEnvelope;
-      persistConflictBackup(backupEnvelope, `Conflito resolvido a favor de ${resolution.winner}`);
-    }
-
-    if(resolution.winner === 'remote'){
-      applyEnvelopeLocally(remoteEnvelope, 'drive');
-      setDriveStatus('Dados carregados do Drive','ok');
-      if(manual){
-        toast(resolution.conflict ? 'Drive mais recente. Backup local de conflito salvo.' : 'Dados mais recentes carregados do Drive.');
-      }
-      renderScreen(getActiveScreenId());
-      return 'pulled';
-    }
-
-    if(resolution.winner === 'local'){
-      const saved = await updateDriveFile(file.id, localEnvelope);
-      DRIVE.fileId = saved.id || file.id;
-      DB.set('drive_file_id', DRIVE.fileId);
-      STATE_META = writeStateMeta({
-        updatedAt: localEnvelope.updatedAt,
-        lastSyncedAt: localEnvelope.updatedAt,
-        lastSource: 'sync',
-      });
-      setDriveStatus('Sincronizado com Drive','ok');
-      if(manual){
-        toast(resolution.conflict ? 'Sua versão local venceu. Backup do conflito foi salvo.' : 'Dados enviados para o Drive.');
-      }
-      return 'pushed';
-    }
-
-    STATE_META = writeStateMeta({
-      updatedAt: localEnvelope.updatedAt || remoteEnvelope.updatedAt || isoNow(),
-      lastSyncedAt: remoteEnvelope.updatedAt || localEnvelope.updatedAt || isoNow(),
-      lastSource: 'sync',
-    });
-    setDriveStatus('Drive em dia','ok');
-    if(manual) toast('Nada para sincronizar. Tudo em dia.');
-    return 'noop';
-  }catch(error){
-    console.error(error);
-    setDriveStatus('Falha na nuvem','warn');
-    if(manual) throw error;
-    return 'error';
-  }finally{
-    setDriveBusy(false);
-  }
-}
-
-saveAll = async function(data){
-  DATA = persistLocalData(data, {
-    updatedAt: isoNow(),
-    lastSource: 'local',
-  });
-  if(DRIVE.ready && DRIVE_CONFIG.autoSync){
-    const result = await syncDriveData();
-    if(result === 'error'){
-      toast('Salvo localmente. A nuvem não respondeu agora.');
-    }
-  }
-  return DATA;
-};
-
-async function saveAllWithRenewedSession(data){
-  DATA = persistLocalData(data, {
-    updatedAt: isoNow(),
-    lastSource: 'local',
-  });
-  if(DRIVE_CONFIG.autoSync){
-    await ensureDriveAccessForSync();
-    if(DRIVE.ready){
-      const result = await syncDriveData();
-      if(result === 'error'){
-        toast('Salvo localmente. A nuvem nao respondeu agora.');
-      }
-    }else if(shouldRestoreDriveSession()){
-      toast('Salvo localmente. Toque em Sincronizar para renovar a nuvem.');
-    }
-  }
-  return DATA;
-}
-
-saveAll = saveAllWithRenewedSession;
-
-connectDrive = async function(){
-  if(!isDriveConfigured()){
-    setDriveStatus('Configuração pendente','warn');
-    toast('Preencha o clientId do Google em drive-config.js.');
-    updateDriveControls();
-    return;
-  }
-  try{
-    setDriveBusy(true);
-    setDriveStatus('Autenticando...','warn');
-    await requestDriveAccess(getDriveRequestPrompt());
-    const result = await syncDriveData({manual:true, initial:true});
-    if(result === 'noop'){
-      toast('Drive conectado com sucesso.');
-    }
-  }catch(error){
-    console.error(error);
-    DRIVE.ready = false;
-    DRIVE.accessToken = '';
-    setDriveStatus(shouldRestoreDriveSession() ? 'Conta conectada. Toque em Sincronizar para renovar.' : 'Falha ao conectar','warn');
-    toast(error.message || 'Não foi possível conectar ao Drive.');
-  }finally{
-    setDriveBusy(false);
-    updateDriveControls();
-  }
-};
-
-manualDriveSync = async function(){
-  if(!DRIVE.ready){
-    await connectDrive();
-    return;
-  }
-  try{
-    await syncDriveData({manual:true});
-  }catch(error){
-    console.error(error);
-    toast(error.message || 'Não foi possível sincronizar com o Drive.');
-  }
-};
-
-let DATA = loadData();
-let STATE_META = readStateMeta();
-
-// ── UTILS ────────────────────────────────────────────────────
-const fmt = v => 'R$ ' + Number(v).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
-const fmtShort = v => {
-  const n = Number(v);
-  if(n>=1000) return 'R$ '+Math.round(n/100)/10+'k';
-  return 'R$ '+Math.round(n);
-};
-
-function currentMonth(){
-  const d = new Date();
-  return d.getFullYear()+'-'+(String(d.getMonth()+1).padStart(2,'0'));
-}
-
-function monthLabel(ym){
-  const [y,m] = ym.split('-');
-  const months = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
-  return months[parseInt(m)-1]+' '+y;
-}
-
-function txMonth(tx){
-  return tx.data ? tx.data.substring(0,7) : '';
-}
-
-function toast(msg){
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),2200);
-}
-
-const CAT_EMOJI = {
-  'Alimentação':'🍔','Moradia':'🏠','Transporte':'🚌','Lazer':'🎮',
-  'Saúde':'💊','Dívidas':'💳','Educação':'📚','Receita':'💼','Outros':'📦',
-  'Investimento':'📈','Freelance':'💻'
-};
-const CAT_COLORS = ['#3B6D11','#185FA5','#BA7517','#A32D2D','#885ead','#0F6E56','#993C1D','#533ab7','#636363'];
-
-// ── NAV ──────────────────────────────────────────────────────
-let catChartInstance = null;
-
-enterApp = async function(){
-  setAppEntered(true);
-  if(shouldRestoreDriveSession() && !DRIVE.ready){
-    await ensureDriveAccessForSync();
-    if(DRIVE.ready){
-      await syncDriveData();
-    }else{
-      toast('Continuando localmente. Use Sincronizar para renovar o Drive.');
-    }
-  }
-  hideLoginGate();
-};
-
-function nav(id, el){
-  const targetId = id==='ia' ? 'score' : id;
-  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(b=>b.classList.remove('active'));
-  document.getElementById('s-'+targetId).classList.add('active');
-  if(el) el.classList.add('active');
-  renderScreen(targetId);
-}
-
-function renderScreen(id){
-  DATA = loadData();
-  if(id==='dashboard') renderDashboard();
-  else if(id==='transacoes') renderTransacoes();
-  else if(id==='metas') renderMetas();
-  else if(id==='dividas') renderDividas();
-  else if(id==='erros') renderErros();
-  else if(id==='relatorio') renderRelatorio();
-  else if(id==='score' || id==='ia') renderScore();
-}
-
-function getActiveScreenId(){
-  return document.querySelector('.screen.active')?.id?.replace('s-','') || 'dashboard';
-}
-
-function refreshActiveScreen(fallback='dashboard'){
-  renderScreen(getActiveScreenId() || fallback);
-}
-
-// ── DASHBOARD ────────────────────────────────────────────────
-function renderDashboard(){
-  const cm = currentMonth();
-  const txs = DATA.transactions.filter(t=>txMonth(t)===cm);
-  const entradas = txs.filter(t=>t.tipo==='Entrada').reduce((a,t)=>a+Number(t.valor),0);
-  const saidas = txs.filter(t=>t.tipo==='Saída').reduce((a,t)=>a+Number(t.valor),0);
-  const saldo = entradas - saidas;
-  const impulso = txs.filter(t=>t.tipo==='Saída'&&t.classificacao==='Impulso').reduce((a,t)=>a+Number(t.valor),0);
-  const essencial = txs.filter(t=>t.tipo==='Saída'&&t.classificacao==='Essencial').reduce((a,t)=>a+Number(t.valor),0);
-
-  // hero
-  document.getElementById('hero-card').innerHTML = `
-    <div class="hero-label">Saldo disponível — ${monthLabel(cm)}</div>
-    <div class="hero-value">${fmt(saldo)}</div>
-    <div class="hero-row">
-      <div class="hero-mini"><div class="hero-mini-label">Entradas</div><div class="hero-mini-val">${fmtShort(entradas)}</div></div>
-      <div class="hero-mini"><div class="hero-mini-label">Saídas</div><div class="hero-mini-val">${fmtShort(saidas)}</div></div>
-    </div>`;
-
-  // score
-  const score = calcScore();
-  const scoreColor = score>=80?'#3B6D11':score>=60?'#BA7517':'#A32D2D';
-  const scoreDesc = score>=80?'Excelente! Continue assim.':score>=60?'Bom. Reduza gastos impulsivos.':'Atenção: revise seus gastos.';
-  const circ = 2*Math.PI*22;
-  const dash = (score/100)*circ;
-  document.getElementById('score-block').innerHTML = `
-    <div class="score-card">
-      <svg width="56" height="56" viewBox="0 0 56 56" role="img" aria-label="Score ${score}">
-        <circle cx="28" cy="28" r="22" fill="none" stroke="var(--border)" stroke-width="5"/>
-        <circle cx="28" cy="28" r="22" fill="none" stroke="${scoreColor}" stroke-width="5"
-          stroke-dasharray="${dash.toFixed(1)} ${circ.toFixed(1)}"
-          stroke-dashoffset="${(circ/4).toFixed(1)}" stroke-linecap="round"
-          transform="rotate(-90 28 28)"/>
-        <text x="28" y="33" text-anchor="middle" font-size="13" font-weight="700"
-          font-family="Space Mono,monospace" fill="var(--text)">${score}</text>
-      </svg>
+  <main id="appShell" class="app-shell hidden">
+    <header class="topbar">
       <div>
-        <div style="font-size:11px;color:var(--text2);margin-bottom:2px">Score financeiro — ${monthLabel(cm)}</div>
-        <div style="font-size:22px;font-weight:600;font-family:Space Mono,monospace">${score} <span style="font-size:13px;color:var(--text2)">/100</span></div>
-        <div style="font-size:11px;color:var(--text2);margin-top:2px">${scoreDesc}</div>
+        <p class="eyebrow">SF</p>
+        <h1>Seu painel financeiro</h1>
+        <p id="welcomeText" class="item-meta">Organize entradas, saídas, metas, dívidas e score em um único painel.</p>
       </div>
-    </div>`;
+      <div id="userBadge" class="badge">Modo local</div>
+    </header>
 
-  // summary
-  document.getElementById('summary-grid').innerHTML = `
-    <div class="metric"><div class="metric-lbl">Entradas</div><div class="metric-val green">${fmtShort(entradas)}</div></div>
-    <div class="metric"><div class="metric-lbl">Saídas</div><div class="metric-val red">${fmtShort(saidas)}</div></div>
-    <div class="metric"><div class="metric-lbl">Essencial</div><div class="metric-val">${fmtShort(essencial)}</div></div>
-    <div class="metric"><div class="metric-lbl">Impulso</div><div class="metric-val red">${fmtShort(impulso)}</div></div>`;
+    <section class="cloud-strip">
+      <div>
+        <strong>Backup em nuvem</strong>
+        <p id="cloudStatus">Modo local ativo. Entre para sincronizar seus dados.</p>
+      </div>
+      <button id="connectButton" class="secondary" type="button">Conectar</button>
+      <button id="syncButton" class="secondary" type="button" disabled>Sincronizar</button>
+    </section>
 
-  // chart
-  try{
-    renderCatChart(txs);
-  }catch(error){
-    console.error('Falha ao renderizar o grafico de categorias:', error);
-    const legend = document.getElementById('cat-legend');
-    const chartBox = legend?.parentElement || null;
-    if(chartBox){
-      chartBox.innerHTML = '<div class="empty" style="padding:30px 0"><div class="empty-icon">Grafico</div><div class="empty-text">Nao foi possivel renderizar o grafico agora.</div></div>';
-    }
-  }
+    <section class="summary-grid">
+      <article class="card"><small>Saldo atual</small><strong id="saldoAtual">R$ 0,00</strong></article>
+      <article class="card"><small>Entradas</small><strong id="totalEntradas">R$ 0,00</strong></article>
+      <article class="card"><small>Saídas</small><strong id="totalSaidas">R$ 0,00</strong></article>
+      <article class="card"><small>Score</small><strong id="scoreResumo">0</strong></article>
+    </section>
 
-  // alerts
-  renderAlerts(txs, saldo);
+    <section id="screen-dashboard" class="section screen">
+      <div class="dashboard-grid">
+        <article class="panel">
+          <div class="section-header">
+            <div>
+              <h2>Visão geral</h2>
+              <p>O resumo mais importante do seu momento financeiro.</p>
+            </div>
+          </div>
+          <div id="overviewList" class="metric-list"></div>
+        </article>
+        <article class="panel">
+          <div class="section-header">
+            <div>
+              <h2>Movimento recente</h2>
+              <p>As últimas alterações registradas no app.</p>
+            </div>
+          </div>
+          <div id="recentList" class="list-grid"></div>
+        </article>
+      </div>
+    </section>
 
-  // goals mini
-  const goalsHTML = DATA.metas.length===0
-    ? '<div class="empty"><div class="empty-icon">🎯</div><div class="empty-text">Nenhuma meta cadastrada</div></div>'
-    : DATA.metas.map(m=>{
-        const pct = Math.min(100, Math.round((Number(m.atual)/Number(m.total))*100));
-        const color = pct>=80?'#3B6D11':pct>=40?'#185FA5':'#BA7517';
-        return `<div class="goal-card">
-          <div class="goal-head"><span class="goal-name">${m.nome}</span><span class="goal-pct">${pct}%</span></div>
-          <div class="track"><div class="fill" style="width:${pct}%;background:${color}"></div></div>
-          <div class="goal-sub"><span>${fmt(m.atual)} / ${fmt(m.total)}</span><span>${m.prazo||'—'}</span></div>
-        </div>`;
-      }).join('');
-  document.getElementById('goals-mini').innerHTML = goalsHTML;
-}
+    <section id="screen-transacoes" class="section screen hidden">
+      <article class="panel">
+        <div class="section-header">
+          <div>
+            <h2>Transações</h2>
+            <p>Registre tudo que entra e sai para manter o painel atualizado.</p>
+          </div>
+        </div>
+        <form id="transactionForm">
+          <div class="form-grid">
+            <label>Tipo
+              <select name="tipo" required>
+                <option value="Entrada">Entrada</option>
+                <option value="Saída">Saída</option>
+              </select>
+            </label>
+            <label>Valor
+              <input type="number" name="valor" step="0.01" min="0" required>
+            </label>
+            <label>Data
+              <input type="date" name="data" required>
+            </label>
+            <label>Categoria
+              <input type="text" name="categoria" placeholder="Moradia, alimentação..." required>
+            </label>
+            <label class="span-2">Descrição
+              <input type="text" name="descricao" placeholder="Ex.: salário, supermercado">
+            </label>
+            <label>Pagamento
+              <input type="text" name="pagamento" placeholder="Pix, cartão, boleto">
+            </label>
+            <label>Classificação
+              <input type="text" name="classificacao" placeholder="Essencial, flexível...">
+            </label>
+            <label class="span-4">Observação
+              <textarea name="observacao" placeholder="Detalhes rápidos da movimentação"></textarea>
+            </label>
+          </div>
+          <div class="actions-row">
+            <button class="primary" type="submit">Salvar transação</button>
+          </div>
+        </form>
+        <div id="transactionsList" class="list-grid"></div>
+      </article>
+    </section>
 
-function renderCatChart(txs){
-  const catMap = {};
-  txs.filter(t=>t.tipo==='Saída').forEach(t=>{
-    catMap[t.categoria] = (catMap[t.categoria]||0)+Number(t.valor);
-  });
-  const labels = Object.keys(catMap);
-  const values = Object.values(catMap);
-  const total = values.reduce((a,b)=>a+b,0);
+    <section id="screen-metas" class="section screen hidden">
+      <article class="panel">
+        <div class="section-header">
+          <div>
+            <h2>Metas</h2>
+            <p>Monte alvos claros e acompanhe o quanto já foi conquistado.</p>
+          </div>
+        </div>
+        <form id="goalForm">
+          <div class="form-grid">
+            <label class="span-2">Meta
+              <input type="text" name="nome" placeholder="Reserva, viagem, equipamento..." required>
+            </label>
+            <label>Valor alvo
+              <input type="number" name="alvo" step="0.01" min="0" required>
+            </label>
+            <label>Valor atual
+              <input type="number" name="atual" step="0.01" min="0" required>
+            </label>
+            <label>Prazo
+              <input type="date" name="prazo">
+            </label>
+            <label>Status
+              <select name="status">
+                <option value="Em andamento">Em andamento</option>
+                <option value="Concluída">Concluída</option>
+                <option value="Pausada">Pausada</option>
+              </select>
+            </label>
+            <label class="span-2">Observação
+              <input type="text" name="observacao" placeholder="O que vai acelerar essa meta?">
+            </label>
+          </div>
+          <div class="actions-row">
+            <button class="primary" type="submit">Salvar meta</button>
+          </div>
+        </form>
+        <div id="goalsList" class="list-grid"></div>
+      </article>
+    </section>
 
-  // legend
-  document.getElementById('cat-legend').innerHTML = labels.map((l,i)=>`
-    <span class="leg-item"><span class="leg-dot" style="background:${CAT_COLORS[i%CAT_COLORS.length]}"></span>${l} ${total?Math.round(values[i]/total*100):0}%</span>
-  `).join('');
+    <section id="screen-dividas" class="section screen hidden">
+      <article class="panel">
+        <div class="section-header">
+          <div>
+            <h2>Dívidas</h2>
+            <p>Enxergue parcelas, prioridade e o quanto falta para respirar melhor.</p>
+          </div>
+        </div>
+        <form id="debtForm">
+          <div class="form-grid">
+            <label class="span-2">Nome
+              <input type="text" name="nome" placeholder="Cartão, empréstimo, loja..." required>
+            </label>
+            <label>Valor total
+              <input type="number" name="valor_total" step="0.01" min="0" required>
+            </label>
+            <label>Parcela
+              <input type="number" name="parcela" step="0.01" min="0" required>
+            </label>
+            <label>Pagas
+              <input type="number" name="pagas" step="1" min="0" value="0" required>
+            </label>
+            <label>Total de parcelas
+              <input type="number" name="total_parcelas" step="1" min="1" required>
+            </label>
+            <label>Status
+              <select name="status">
+                <option value="Ativo">Ativo</option>
+                <option value="Negociando">Negociando</option>
+                <option value="Quitado">Quitado</option>
+              </select>
+            </label>
+            <label>Prioridade
+              <select name="prioridade">
+                <option value="Alta">Alta</option>
+                <option value="Média">Média</option>
+                <option value="Baixa">Baixa</option>
+              </select>
+            </label>
+          </div>
+          <div class="actions-row">
+            <button class="primary" type="submit">Salvar dívida</button>
+          </div>
+        </form>
+        <div id="debtsList" class="list-grid"></div>
+      </article>
+    </section>
 
-  if(catChartInstance){catChartInstance.destroy();catChartInstance=null;}
-  const ctx = document.getElementById('catChart');
-  if(labels.length===0){
-    ctx.parentElement.innerHTML = '<div class="empty" style="padding:30px 0"><div class="empty-icon">📊</div><div class="empty-text">Nenhuma saída registrada</div></div>';
-    return;
-  }
-  catChartInstance = new Chart(ctx,{
-    type:'doughnut',
-    data:{labels,datasets:[{data:values,backgroundColor:CAT_COLORS.slice(0,labels.length),borderWidth:2,borderColor:'transparent'}]},
-    options:{responsive:true,maintainAspectRatio:false,cutout:'68%',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>`${c.label}: ${fmt(c.raw)}`}}}}
-  });
-}
+    <section id="screen-relatorio" class="section screen hidden">
+      <div class="dashboard-grid">
+        <article class="panel">
+          <div class="section-header">
+            <div>
+              <h2>Relatório do momento</h2>
+              <p>Leitura consolidada para decidir com mais calma os próximos passos.</p>
+            </div>
+          </div>
+          <div id="reportList" class="metric-list"></div>
+        </article>
+        <article class="panel">
+          <div class="section-header">
+            <div>
+              <h2>Categorias que mais pesam</h2>
+              <p>Saídas agrupadas por categoria.</p>
+            </div>
+          </div>
+          <div id="categoryList" class="metric-list"></div>
+        </article>
+      </div>
+    </section>
 
-if(typeof window.Chart !== 'function'){
-  window.Chart = function(canvas, config){
-    this.canvas = canvas;
-    this.config = config || {};
+    <section id="screen-score" class="section screen hidden">
+      <div class="dashboard-grid">
+        <article class="panel">
+          <div class="section-header">
+            <div>
+              <h2>Score</h2>
+              <p>Uma leitura rápida da consistência financeira atual.</p>
+            </div>
+          </div>
+          <div class="score-card">
+            <div id="scoreRing" class="score-ring"><strong id="scoreValue">0</strong></div>
+            <div>
+              <small>Insights automáticos</small>
+              <div id="insightsList" class="insight-list"></div>
+            </div>
+          </div>
+        </article>
+        <article class="panel">
+          <div class="section-header">
+            <div>
+              <h2>Erros financeiros</h2>
+              <p>Use essa área para registrar padrões que você quer quebrar.</p>
+            </div>
+          </div>
+          <form id="mistakeForm">
+            <div class="form-grid">
+              <label>Tipo
+                <input type="text" name="tipo" placeholder="Compra por impulso" required>
+              </label>
+              <label>Data
+                <input type="date" name="data" required>
+              </label>
+              <label>Categoria
+                <input type="text" name="categoria" placeholder="Categoria do erro">
+              </label>
+              <label>Gravidade
+                <select name="gravidade">
+                  <option value="Leve">Leve</option>
+                  <option value="Média">Média</option>
+                  <option value="Alta">Alta</option>
+                </select>
+              </label>
+              <label class="span-2">Motivo
+                <input type="text" name="motivo" placeholder="O que provocou essa decisão?">
+              </label>
+              <label class="span-2">Solução
+                <input type="text" name="solucao" placeholder="Qual ação reduz a chance de repetir?">
+              </label>
+              <label>Reincidente
+                <select name="reincidente">
+                  <option value="Não">Não</option>
+                  <option value="Sim">Sim</option>
+                </select>
+              </label>
+            </div>
+            <div class="actions-row">
+              <button class="primary" type="submit">Salvar erro</button>
+            </div>
+          </form>
+          <div id="mistakesList" class="list-grid"></div>
+        </article>
+      </div>
+    </section>
 
-    this.destroy = function(){
-      if(!this.canvas) return;
-      const ctx = this.canvas.getContext('2d');
-      if(!ctx) return;
-      ctx.setTransform(1,0,0,1,0,0);
-      ctx.clearRect(0,0,this.canvas.width,this.canvas.height);
+    <nav class="nav-row">
+      <button class="nav-button is-active" data-screen="dashboard" type="button">Dashboard</button>
+      <button class="nav-button" data-screen="transacoes" type="button">Transações</button>
+      <button class="nav-button" data-screen="metas" type="button">Metas</button>
+      <button class="nav-button" data-screen="dividas" type="button">Dívidas</button>
+      <button class="nav-button" data-screen="relatorio" type="button">Relatório</button>
+      <button class="nav-button" data-screen="score" type="button">Score</button>
+    </nav>
+  </main>
+
+  <div id="toast" class="toast hidden"></div>
+
+  <script type="module">
+    const firebaseConfig = {
+      apiKey: "AIzaSyBAawbqs-zj-PcMDvjUEqqKIHIJOTrXTbY",
+      authDomain: "sf-app-e2a0c.firebaseapp.com",
+      projectId: "sf-app-e2a0c",
+      storageBucket: "sf-app-e2a0c.firebasestorage.app",
+      messagingSenderId: "669290722113",
+      appId: "1:669290722113:web:cd1c7d6ca84a7095bf67c0",
     };
 
-    const dataset = this.config?.data?.datasets?.[0] || {};
-    const values = Array.isArray(dataset.data) ? dataset.data.map(Number) : [];
-    const colors = Array.isArray(dataset.backgroundColor) ? dataset.backgroundColor : [];
-    const total = values.reduce((sum, value)=>sum + value, 0);
-    const wrap = this.canvas?.parentElement;
-    if(!wrap) return;
-
-    const width = Math.max(wrap.clientWidth || 0, 220);
-    const height = Math.max(wrap.clientHeight || 0, 180);
-    const dpr = window.devicePixelRatio || 1;
-    this.canvas.width = Math.round(width * dpr);
-    this.canvas.height = Math.round(height * dpr);
-    this.canvas.style.width = `${width}px`;
-    this.canvas.style.height = `${height}px`;
-
-    const ctx = this.canvas.getContext('2d');
-    if(!ctx) return;
-    ctx.setTransform(dpr,0,0,dpr,0,0);
-    ctx.clearRect(0,0,width,height);
-
-    const outerRadius = Math.min(width, height) / 2 - 12;
-    const innerRadius = outerRadius * 0.68;
-    const ringRadius = (outerRadius + innerRadius) / 2;
-    const ringWidth = outerRadius - innerRadius;
-    const cx = width / 2;
-    const cy = height / 2;
-    let startAngle = -Math.PI / 2;
-
-    values.forEach((value, index)=>{
-      const sliceAngle = total > 0 ? (value / total) * Math.PI * 2 : 0;
-      ctx.beginPath();
-      ctx.strokeStyle = colors[index] || CAT_COLORS[index % CAT_COLORS.length];
-      ctx.lineWidth = ringWidth;
-      ctx.lineCap = 'butt';
-      ctx.arc(cx, cy, ringRadius, startAngle, startAngle + sliceAngle);
-      ctx.stroke();
-      startAngle += sliceAngle;
-    });
-
-    ctx.beginPath();
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#ffffff';
-    ctx.arc(cx, cy, innerRadius - 1, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text2').trim() || '#6b6b6b';
-    ctx.font = "11px 'DM Sans', sans-serif";
-    ctx.fillText('Saidas', cx, cy - 12);
-    ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--text').trim() || '#1a1a1a';
-    ctx.font = "bold 15px 'Space Mono', monospace";
-    ctx.fillText(total ? fmtShort(total) : 'R$ 0', cx, cy + 10);
-  };
-}
-
-function ensureCatChartCanvas(){
-  const legend = document.getElementById('cat-legend');
-  const chartBox = legend?.parentElement || null;
-  if(!chartBox) return null;
-
-  let wrap = chartBox.querySelector('[data-cat-chart-wrap="true"]');
-  if(!wrap){
-    const existingCanvas = document.getElementById('catChart');
-    if(existingCanvas?.parentElement){
-      wrap = existingCanvas.parentElement;
-      wrap.dataset.catChartWrap = 'true';
-    }
-  }
-
-  if(!wrap){
-    const holder = document.createElement('div');
-    holder.dataset.catChartWrap = 'true';
-    holder.style.position = 'relative';
-    holder.style.height = '180px';
-    holder.innerHTML = '<canvas id="catChart" role="img" aria-label="Grafico de gastos por categoria"></canvas>';
-    chartBox.appendChild(holder);
-    wrap = holder;
-  }
-
-  let canvas = document.getElementById('catChart');
-  if(!canvas){
-    wrap.innerHTML = '<canvas id="catChart" role="img" aria-label="Grafico de gastos por categoria"></canvas>';
-    canvas = document.getElementById('catChart');
-  }
-
-  return canvas;
-}
-
-renderCatChart = function(txs){
-  const catMap = {};
-  txs.filter(t=>t.tipo==='SaÃ­da').forEach(t=>{
-    catMap[t.categoria] = (catMap[t.categoria]||0)+Number(t.valor);
-  });
-  const labels = Object.keys(catMap);
-  const values = Object.values(catMap);
-  const total = values.reduce((a,b)=>a+b,0);
-
-  document.getElementById('cat-legend').innerHTML = labels.map((l,i)=>`
-    <span class="leg-item"><span class="leg-dot" style="background:${CAT_COLORS[i%CAT_COLORS.length]}"></span>${l} ${total?Math.round(values[i]/total*100):0}%</span>
-  `).join('');
-
-  const canvas = ensureCatChartCanvas();
-  if(!canvas) return;
-
-  if(labels.length===0){
-    canvas.parentElement.innerHTML = '<div class="empty" style="padding:30px 0"><div class="empty-icon">ðŸ“Š</div><div class="empty-text">Nenhuma saÃ­da registrada</div></div>';
-    catChartInstance = null;
-    return;
-  }
-
-  if(catChartInstance && typeof catChartInstance.destroy === 'function'){
-    catChartInstance.destroy();
-  }
-  catChartInstance = new Chart(canvas,{
-    type:'doughnut',
-    data:{labels,datasets:[{data:values,backgroundColor:CAT_COLORS.slice(0,labels.length)}]},
-  });
-};
-
-function renderAlerts(txs, saldo){
-  const alerts = [];
-  const impulso = txs.filter(t=>t.tipo==='Saída'&&t.classificacao==='Impulso');
-  if(impulso.length>=3) alerts.push({type:'warn',msg:`${impulso.length} compras por impulso neste mês — total ${fmt(impulso.reduce((a,t)=>a+Number(t.valor),0))}`});
-  if(saldo<500&&saldo>=0) alerts.push({type:'warn',msg:'Saldo baixo! Menos de R$ 500 disponível.'});
-  if(saldo<0) alerts.push({type:'danger',msg:'Saldo negativo! Suas saídas superam as entradas.'});
-  const debitoTotal = txs.filter(t=>t.tipo==='Saída'&&t.pagamento==='Crédito').reduce((a,t)=>a+Number(t.valor),0);
-  const entradas = txs.filter(t=>t.tipo==='Entrada').reduce((a,t)=>a+Number(t.valor),0);
-  if(entradas>0&&debitoTotal/entradas>0.3) alerts.push({type:'warn',msg:`Crédito em ${Math.round(debitoTotal/entradas*100)}% da renda — limite recomendado é 30%`});
-  const metasAtrasadas = DATA.metas.filter(m=>{
-    const pct = Number(m.atual)/Number(m.total);
-    return m.prazo && new Date(m.prazo) < new Date(Date.now()+90*86400000) && pct<0.5;
-  });
-  if(metasAtrasadas.length>0) alerts.push({type:'info',msg:`${metasAtrasadas.length} meta(s) com prazo próximo e progresso abaixo de 50%`});
-
-  document.getElementById('alerts-block').innerHTML = alerts.length===0
-    ? '<div class="alert info"><span class="alert-dot"></span><span>Nenhum alerta ativo. Continue assim!</span></div>'
-    : alerts.map(a=>`<div class="alert ${a.type}"><span class="alert-dot"></span><span>${a.msg}</span></div>`).join('');
-}
-
-// ── SCORE ────────────────────────────────────────────────────
-function calcScore(){
-  const cm = currentMonth();
-  const txs = DATA.transactions.filter(t=>txMonth(t)===cm);
-  let score = 70;
-  const impulso = txs.filter(t=>t.tipo==='Saída'&&t.classificacao==='Impulso').length;
-  score -= impulso * 5;
-  const saldo = txs.filter(t=>t.tipo==='Entrada').reduce((a,t)=>a+Number(t.valor),0)
-               - txs.filter(t=>t.tipo==='Saída').reduce((a,t)=>a+Number(t.valor),0);
-  if(saldo<0) score -= 15;
-  if(DATA.metas.length>0){
-    const avgPct = DATA.metas.reduce((a,m)=>a+(Number(m.atual)/Number(m.total)),0)/DATA.metas.length;
-    if(avgPct>=0.5) score += 5;
-  }
-  const reincidentes = DATA.erros.filter(e=>e.reincidente==='Sim').length;
-  score -= reincidentes * 3;
-  return Math.max(0, Math.min(100, Math.round(score)));
-}
-
-// ── TRANSAÇÕES ───────────────────────────────────────────────
-function renderTransacoes(){
-  const cm = currentMonth();
-  const txs = DATA.transactions.filter(t=>txMonth(t)===cm).sort((a,b)=>new Date(b.data)-new Date(a.data));
-  if(txs.length===0){
-    document.getElementById('tx-list').innerHTML = '<div class="empty"><div class="empty-icon">💸</div><div class="empty-text">Nenhuma transação neste mês.<br>Toque no + para adicionar.</div></div>';
-    return;
-  }
-  const groups = {};
-  txs.forEach(t=>{
-    const d = t.data || 'Sem data';
-    if(!groups[d]) groups[d]=[];
-    groups[d].push(t);
-  });
-  document.getElementById('tx-list').innerHTML = Object.entries(groups).map(([date,items])=>`
-    <div class="tx-group-label">${formatDateLabel(date)}</div>
-    ${items.map(t=>`
-      <div class="tx-item">
-        <div class="tx-cat" style="background:${t.tipo==='Entrada'?'var(--green-bg)':'var(--bg3)'}">${CAT_EMOJI[t.categoria]||'📦'}</div>
-        <div class="tx-info">
-          <div class="tx-name">${t.descricao||t.categoria}${t.classificacao?`<span class="badge ${t.classificacao==='Impulso'?'impulso':'essencial'}">${t.classificacao}</span>`:''}</div>
-          <div class="tx-sub">${t.categoria}${t.pagamento?' · '+t.pagamento:''}</div>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span class="tx-amount ${t.tipo==='Saída'?'out':'in'}">${t.tipo==='Saída'?'-':'+'} ${fmt(t.valor)}</span>
-          <button class="del-btn" onclick="deleteTx('${t.id}')">×</button>
-        </div>
-      </div>`).join('')}
-  `).join('');
-}
-
-function formatDateLabel(d){
-  const dt = new Date(d+'T12:00:00');
-  const today = new Date(); today.setHours(12,0,0,0);
-  const diff = Math.round((today-dt)/86400000);
-  if(diff===0) return 'Hoje — '+dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
-  if(diff===1) return 'Ontem — '+dt.toLocaleDateString('pt-BR',{day:'2-digit',month:'short'});
-  return dt.toLocaleDateString('pt-BR',{weekday:'short',day:'2-digit',month:'short'});
-}
-
-async function deleteTx(id){
-  DATA.transactions = DATA.transactions.filter(t=>t.id!==id);
-  await saveAll(DATA);
-  toast('Transação removida');
-  refreshActiveScreen('transacoes');
-}
-
-// ── METAS ────────────────────────────────────────────────────
-function renderMetas(){
-  const el = document.getElementById('metas-list');
-  if(DATA.metas.length===0){
-    el.innerHTML='<div class="empty"><div class="empty-icon">🎯</div><div class="empty-text">Nenhuma meta cadastrada ainda.</div></div>';
-    return;
-  }
-  el.innerHTML = DATA.metas.map(m=>{
-    const pct = Math.min(100,Math.round((Number(m.atual)/Number(m.total))*100));
-    const color = pct>=80?'#3B6D11':pct>=40?'#185FA5':'#BA7517';
-    return `<div class="goal-card">
-      <div class="goal-head">
-        <div>
-          <div class="goal-name">${m.nome}</div>
-          <span class="prio ${m.prioridade?.toLowerCase()||'media'}" style="margin-top:4px;display:inline-block">${m.prioridade||'Média'}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:8px">
-          <span class="goal-pct">${pct}%</span>
-          <button class="del-btn" onclick="deleteMeta('${m.id}')">×</button>
-        </div>
-      </div>
-      <div class="track"><div class="fill" style="width:${pct}%;background:${color}"></div></div>
-      <div class="goal-sub"><span>${fmt(m.atual)} / ${fmt(m.total)}</span><span>${m.prazo||'—'}</span></div>
-    </div>`;
-  }).join('');
-}
-
-async function deleteMeta(id){
-  DATA.metas = DATA.metas.filter(m=>m.id!==id);
-  await saveAll(DATA);
-  toast('Meta removida');
-  refreshActiveScreen('metas');
-}
-
-// ── DÍVIDAS ──────────────────────────────────────────────────
-function renderDividas(){
-  const el = document.getElementById('dividas-list');
-  if(DATA.dividas.length===0){
-    el.innerHTML='<div class="empty"><div class="empty-icon">💳</div><div class="empty-text">Nenhuma dívida cadastrada.</div></div>';
-    return;
-  }
-  el.innerHTML = DATA.dividas.map(d=>{
-    const pct = Math.min(100,Math.round((Number(d.pagas)/Number(d.total_parcelas))*100));
-    const color = d.status==='Quitado'?'#3B6D11':'#A32D2D';
-    return `<div class="debt-card">
-      <div class="debt-head">
-        <div>
-          <div class="debt-name" style="font-size:13px;font-weight:600">${d.nome}</div>
-          <span class="prio ${d.prioridade?.toLowerCase()||'media'}" style="margin-top:4px;display:inline-block">${d.prioridade||'Média'}</span>
-        </div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span class="status-badge ${d.status==='Quitado'?'status-quitado':'status-ativo'}">${d.status}</span>
-          <button class="del-btn" onclick="deleteDivida('${d.id}')">×</button>
-        </div>
-      </div>
-      <div class="track"><div class="fill" style="width:${pct}%;background:${color}"></div></div>
-      <div class="debt-vals">
-        <div class="debt-val-block"><div class="debt-val-num">${fmtShort(d.valor_total)}</div><div class="debt-val-lbl">Total</div></div>
-        <div class="debt-val-block"><div class="debt-val-num">${fmtShort(d.parcela)}</div><div class="debt-val-lbl">Parcela</div></div>
-        <div class="debt-val-block"><div class="debt-val-num">${d.pagas}/${d.total_parcelas}x</div><div class="debt-val-lbl">Pagas</div></div>
-      </div>
-    </div>`;
-  }).join('');
-}
-
-async function deleteDivida(id){
-  DATA.dividas = DATA.dividas.filter(d=>d.id!==id);
-  await saveAll(DATA);
-  toast('Dívida removida');
-  refreshActiveScreen('dividas');
-}
-
-// ── ERROS ────────────────────────────────────────────────────
-function renderErros(){
-  const el = document.getElementById('erros-list');
-  if(DATA.erros.length===0){
-    el.innerHTML='<div class="empty"><div class="empty-icon">✅</div><div class="empty-text">Nenhum ponto crítico registrado.<br>Ótimo sinal!</div></div>';
-    return;
-  }
-  el.innerHTML = DATA.erros.map(e=>`
-    <div class="err-card">
-      <div style="display:flex;justify-content:space-between;align-items:flex-start">
-        <div style="font-size:13px;font-weight:600">${e.tipo}</div>
-        <div style="display:flex;align-items:center;gap:6px">
-          <span class="grav ${e.gravidade?.toLowerCase()||'leve'}">${e.gravidade}</span>
-          <button class="del-btn" onclick="deleteErro('${e.id}')">×</button>
-        </div>
-      </div>
-      <div class="err-chips">
-        ${e.data?`<span class="chip">${formatDateLabel(e.data)}</span>`:''}
-        ${e.categoria?`<span class="chip">${e.categoria}</span>`:''}
-        ${e.motivo?`<span class="chip">${e.motivo}</span>`:''}
-        ${e.reincidente==='Sim'?'<span class="chip" style="background:var(--red-bg);color:var(--red)">Reincidente</span>':''}
-      </div>
-      ${e.solucao?`<div class="solucao-box"><strong>Solução:</strong> ${e.solucao}</div>`:''}
-    </div>`).join('');
-}
-
-async function deleteErro(id){
-  DATA.erros = DATA.erros.filter(e=>e.id!==id);
-  await saveAll(DATA);
-  toast('Registro removido');
-  refreshActiveScreen('erros');
-}
-
-// ── RELATÓRIO ────────────────────────────────────────────────
-function renderRelatorio(){
-  const cm = currentMonth();
-  const [cy,cmo] = cm.split('-').map(Number);
-  const pm = cmo===1?`${cy-1}-12`:`${cy}-${String(cmo-1).padStart(2,'0')}`;
-
-  const txCur = DATA.transactions.filter(t=>txMonth(t)===cm);
-  const txPrev = DATA.transactions.filter(t=>txMonth(t)===pm);
-
-  const sum = (arr,tipo) => arr.filter(t=>t.tipo===tipo).reduce((a,t)=>a+Number(t.valor),0);
-  const eCur=sum(txCur,'Entrada'),sPrev=sum(txPrev,'Entrada');
-  const sCur=sum(txCur,'Saída'),ssPrev=sum(txPrev,'Saída');
-  const impCur=txCur.filter(t=>t.classificacao==='Impulso').reduce((a,t)=>a+Number(t.valor),0);
-  const impPrev=txPrev.filter(t=>t.classificacao==='Impulso').reduce((a,t)=>a+Number(t.valor),0);
-  const saldoCur=eCur-sCur, saldoPrev=sPrev-ssPrev;
-
-  const delta=(c,p)=>{
-    if(p===0) return '';
-    const d=Math.round((c-p)/p*100);
-    const cls=d>0?'up':'dn';
-    return `<span class="delta ${cls}">${d>0?'▲':'▼'} ${Math.abs(d)}%</span>`;
-  };
-
-  // category breakdown
-  const catMap={};
-  txCur.filter(t=>t.tipo==='Saída').forEach(t=>catMap[t.categoria]=(catMap[t.categoria]||0)+Number(t.valor));
-  const catRows = Object.entries(catMap).sort((a,b)=>b[1]-a[1]).map(([cat,val])=>`
-    <div class="report-row">
-      <span class="report-lbl">${CAT_EMOJI[cat]||'📦'} ${cat}</span>
-      <span style="font-family:Space Mono,monospace;font-size:12px;font-weight:600">${fmt(val)}</span>
-    </div>`).join('');
-
-  const score = calcScore();
-
-  document.getElementById('relatorio-content').innerHTML = `
-    <div class="grid2" style="margin-bottom:14px">
-      <div class="metric"><div class="metric-lbl">Total ganho</div><div class="metric-val green">${fmtShort(eCur)}</div></div>
-      <div class="metric"><div class="metric-lbl">Total gasto</div><div class="metric-val red">${fmtShort(sCur)}</div></div>
-      <div class="metric"><div class="metric-lbl">Saldo final</div><div class="metric-val ${saldoCur>=0?'green':'red'}">${fmtShort(saldoCur)}</div></div>
-      <div class="metric"><div class="metric-lbl">Score</div><div class="metric-val" style="color:${score>=70?'var(--green)':'var(--amber)'}">${score} pts</div></div>
-    </div>
-    <div class="section-title" style="margin-top:0">Comparação com ${monthLabel(pm)}</div>
-    <div class="report-box">
-      <div class="report-row"><span class="report-lbl">Entradas</span><div class="report-vals"><span class="this">${fmt(eCur)}</span>${delta(eCur,sPrev)}</div></div>
-      <div class="report-row"><span class="report-lbl">Saídas</span><div class="report-vals"><span class="this">${fmt(sCur)}</span>${delta(sCur,ssPrev)}</div></div>
-      <div class="report-row"><span class="report-lbl">Saldo</span><div class="report-vals"><span class="this">${fmt(saldoCur)}</span>${delta(saldoCur,saldoPrev)}</div></div>
-      <div class="report-row"><span class="report-lbl">Impulso</span><div class="report-vals"><span class="this">${fmt(impCur)}</span>${delta(impCur,impPrev)}</div></div>
-    </div>
-    ${catRows?`<div class="section-title">Gastos por categoria</div><div class="report-box">${catRows}</div>`:''}
-  `;
-}
-
-// ── SCORE ────────────────────────────────────────────────────
-function renderScore(){
-  const cm = currentMonth();
-  const txs = DATA.transactions.filter(t=>txMonth(t)===cm);
-  const impulso = txs.filter(t=>t.classificacao==='Impulso').length;
-  const entradas = txs.filter(t=>t.tipo==='Entrada').reduce((a,t)=>a+Number(t.valor),0);
-  const saidas = txs.filter(t=>t.tipo==='Saída').reduce((a,t)=>a+Number(t.valor),0);
-  const saldo = entradas - saidas;
-
-  const insights = [];
-  if(impulso>0) insights.push({icon:'⚠️',bg:'var(--amber-bg)',title:'Padrão de impulso detectado',body:`Você fez ${impulso} compra(s) por impulso neste mês, totalizando ${fmt(txs.filter(t=>t.classificacao==='Impulso').reduce((a,t)=>a+Number(t.valor),0))}. Considere a regra das 48h antes de compras não planejadas.`});
-  if(entradas>0) insights.push({icon:'📈',bg:'var(--green-bg)',title:'Projeção de saldo',body:`Mantendo o padrão atual, seu saldo projetado para o fim do mês é ${fmt(saldo)}. ${saldo>0?'Continue economizando!':'Revise seus gastos urgentemente.'}`});
-  if(DATA.metas.length>0){
-    const slow = DATA.metas.filter(m=>Number(m.atual)/Number(m.total)<0.3&&m.prazo&&new Date(m.prazo)<new Date(Date.now()+180*86400000));
-    if(slow.length>0) insights.push({icon:'🎯',bg:'var(--blue-bg)',title:'Metas em risco',body:`${slow.length} meta(s) com progresso abaixo de 30% e prazo nos próximos 6 meses. Aumente as contribuições mensais.`});
-  }
-  if(insights.length===0) insights.push({icon:'✅',bg:'var(--green-bg)',title:'Tudo sob controle',body:'Sem alertas críticos neste mês. Continue registrando suas transações para análises mais precisas.'});
-
-  document.getElementById('insights-block').innerHTML = insights.map(i=>`
-    <div class="insight-card">
-      <div class="insight-icon" style="background:${i.bg}">${i.icon}</div>
-      <div><div class="insight-title">${i.title}</div><div class="insight-body">${i.body}</div></div>
-    </div>`).join('');
-
-}
-
-// ── MODALS ───────────────────────────────────────────────────
-let currentModal = '';
-
-function openModal(type){
-  currentModal = type;
-  const box = document.getElementById('modal-box');
-  if(type==='tx') box.innerHTML = modalTx();
-  else if(type==='meta') box.innerHTML = modalMeta();
-  else if(type==='divida') box.innerHTML = modalDivida();
-  else if(type==='erro') box.innerHTML = modalErro();
-  document.getElementById('overlay').classList.add('open');
-  // init tipo toggle
-  if(type==='tx') selectTipo('Saída');
-}
-
-function closeModal(){
-  document.getElementById('overlay').classList.remove('open');
-}
-
-function overlayClick(e){
-  if(e.target===document.getElementById('overlay')) closeModal();
-}
-
-function selectTipo(tipo){
-  const s = document.getElementById('tipo-saida');
-  const e = document.getElementById('tipo-entrada');
-  if(!s||!e) return;
-  s.className='tipo-btn'+(tipo==='Saída'?' sel-s':'');
-  e.className='tipo-btn'+(tipo==='Entrada'?' sel-e':'');
-  s.dataset.sel = tipo==='Saída'?'1':'0';
-  e.dataset.sel = tipo==='Entrada'?'1':'0';
-  window._tipoTx = tipo;
-  // show/hide classificacao
-  const classRow = document.getElementById('class-row');
-  if(classRow) classRow.style.display = tipo==='Saída'?'block':'none';
-}
-
-function modalTx(){
-  const today = new Date().toISOString().split('T')[0];
-  return `<div class="modal-title">Nova transação</div>
-  <div class="tipo-row">
-    <button id="tipo-saida" class="tipo-btn sel-s" onclick="selectTipo('Saída')">Saída</button>
-    <button id="tipo-entrada" class="tipo-btn" onclick="selectTipo('Entrada')">Entrada</button>
-  </div>
-  <div class="form-grid">
-    <div class="form-group"><label class="form-label">Valor (R$)</label><input id="f-valor" class="form-input" type="number" step="0.01" min="0" placeholder="0,00"/></div>
-    <div class="form-group"><label class="form-label">Data</label><input id="f-data" class="form-input" type="date" value="${today}"/></div>
-  </div>
-  <div class="form-group"><label class="form-label">Descrição</label><input id="f-desc" class="form-input" type="text" placeholder="Ex: Supermercado Extra"/></div>
-  <div class="form-grid">
-    <div class="form-group"><label class="form-label">Categoria</label>
-      <select id="f-cat" class="form-select">
-        <option>Alimentação</option><option>Moradia</option><option>Transporte</option><option>Lazer</option>
-        <option>Saúde</option><option>Dívidas</option><option>Educação</option><option>Investimento</option>
-        <option>Freelance</option><option>Receita</option><option>Outros</option>
-      </select></div>
-    <div class="form-group"><label class="form-label">Pagamento</label>
-      <select id="f-pag" class="form-select">
-        <option>Pix</option><option>Débito</option><option>Crédito</option><option>Dinheiro</option><option>TED</option>
-      </select></div>
-  </div>
-  <div id="class-row" class="form-group"><label class="form-label">Classificação</label>
-    <select id="f-class" class="form-select"><option>Essencial</option><option>Impulso</option></select></div>
-  <div class="form-group"><label class="form-label">Observação</label><input id="f-obs" class="form-input" type="text" placeholder="Opcional"/></div>
-  <div class="modal-btns">
-    <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
-    <button class="btn-save" onclick="saveTx()">Salvar</button>
-  </div>`;
-}
-
-async function saveTx(){
-  const valor = parseFloat(document.getElementById('f-valor').value);
-  if(!valor||valor<=0){toast('Informe um valor válido');return;}
-  const tipo = window._tipoTx || 'Saída';
-  const tx = {
-    id: Date.now().toString(),
-    tipo,
-    valor,
-    data: document.getElementById('f-data').value,
-    descricao: document.getElementById('f-desc').value||'',
-    categoria: document.getElementById('f-cat').value,
-    pagamento: document.getElementById('f-pag').value,
-    classificacao: tipo==='Saída'?(document.getElementById('f-class')?.value||'Essencial'):'',
-    observacao: document.getElementById('f-obs')?.value||'',
-  };
-  DATA.transactions.push(tx);
-  await saveAll(DATA);
-  closeModal();
-  toast('Transação salva!');
-  refreshActiveScreen('dashboard');
-}
-
-function modalMeta(){
-  return `<div class="modal-title">Nova meta</div>
-  <div class="form-group"><label class="form-label">Nome da meta</label><input id="m-nome" class="form-input" type="text" placeholder="Ex: Reserva de emergência"/></div>
-  <div class="form-grid">
-    <div class="form-group"><label class="form-label">Valor total (R$)</label><input id="m-total" class="form-input" type="number" placeholder="0,00"/></div>
-    <div class="form-group"><label class="form-label">Valor atual (R$)</label><input id="m-atual" class="form-input" type="number" placeholder="0,00"/></div>
-  </div>
-  <div class="form-grid">
-    <div class="form-group"><label class="form-label">Prazo</label><input id="m-prazo" class="form-input" type="date"/></div>
-    <div class="form-group"><label class="form-label">Prioridade</label>
-      <select id="m-prio" class="form-select"><option>Alta</option><option selected>Média</option><option>Baixa</option></select></div>
-  </div>
-  <div class="modal-btns">
-    <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
-    <button class="btn-save" onclick="saveMeta()">Salvar</button>
-  </div>`;
-}
-
-async function saveMeta(){
-  const nome = document.getElementById('m-nome').value.trim();
-  const total = parseFloat(document.getElementById('m-total').value);
-  if(!nome||!total){toast('Preencha nome e valor total');return;}
-  DATA.metas.push({
-    id:Date.now().toString(), nome, total,
-    atual: parseFloat(document.getElementById('m-atual').value)||0,
-    prazo: document.getElementById('m-prazo').value,
-    prioridade: document.getElementById('m-prio').value,
-  });
-  await saveAll(DATA);
-  closeModal();
-  toast('Meta salva!');
-  refreshActiveScreen('metas');
-}
-
-function modalDivida(){
-  return `<div class="modal-title">Registrar dívida</div>
-  <div class="form-group"><label class="form-label">Nome da dívida</label><input id="d-nome" class="form-input" type="text" placeholder="Ex: Cartão Nubank"/></div>
-  <div class="form-grid">
-    <div class="form-group"><label class="form-label">Valor total (R$)</label><input id="d-total" class="form-input" type="number" placeholder="0,00"/></div>
-    <div class="form-group"><label class="form-label">Valor da parcela (R$)</label><input id="d-parcela" class="form-input" type="number" placeholder="0,00"/></div>
-  </div>
-  <div class="form-grid">
-    <div class="form-group"><label class="form-label">Parcelas pagas</label><input id="d-pagas" class="form-input" type="number" min="0" placeholder="0"/></div>
-    <div class="form-group"><label class="form-label">Total de parcelas</label><input id="d-total-p" class="form-input" type="number" min="1" placeholder="12"/></div>
-  </div>
-  <div class="form-grid">
-    <div class="form-group"><label class="form-label">Status</label>
-      <select id="d-status" class="form-select"><option>Ativo</option><option>Quitado</option></select></div>
-    <div class="form-group"><label class="form-label">Prioridade</label>
-      <select id="d-prio" class="form-select"><option>Alta</option><option selected>Média</option><option>Baixa</option></select></div>
-  </div>
-  <div class="modal-btns">
-    <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
-    <button class="btn-save" onclick="saveDivida()">Salvar</button>
-  </div>`;
-}
-
-async function saveDivida(){
-  const nome = document.getElementById('d-nome').value.trim();
-  const total = parseFloat(document.getElementById('d-total').value);
-  if(!nome||!total){toast('Preencha nome e valor total');return;}
-  DATA.dividas.push({
-    id:Date.now().toString(), nome, valor_total:total,
-    parcela: parseFloat(document.getElementById('d-parcela').value)||0,
-    pagas: parseInt(document.getElementById('d-pagas').value)||0,
-    total_parcelas: parseInt(document.getElementById('d-total-p').value)||1,
-    status: document.getElementById('d-status').value,
-    prioridade: document.getElementById('d-prio').value,
-  });
-  await saveAll(DATA);
-  closeModal();
-  toast('Dívida registrada!');
-  refreshActiveScreen('dividas');
-}
-
-function modalErro(){
-  const today = new Date().toISOString().split('T')[0];
-  return `<div class="modal-title">Registrar ponto crítico</div>
-  <div class="form-group"><label class="form-label">Tipo de erro</label>
-    <select id="e-tipo" class="form-select">
-      <option>Compra por impulso</option><option>Falta de planejamento</option>
-      <option>Uso excessivo de crédito</option><option>Gasto emocional</option>
-      <option>Atraso em pagamento</option><option>Outro</option>
-    </select></div>
-  <div class="form-grid">
-    <div class="form-group"><label class="form-label">Data</label><input id="e-data" class="form-input" type="date" value="${today}"/></div>
-    <div class="form-group"><label class="form-label">Categoria</label>
-      <select id="e-cat" class="form-select">
-        <option>Alimentação</option><option>Lazer</option><option>Transporte</option>
-        <option>Dívidas</option><option>Saúde</option><option>Outros</option>
-      </select></div>
-  </div>
-  <div class="form-grid">
-    <div class="form-group"><label class="form-label">Gravidade</label>
-      <select id="e-grav" class="form-select"><option>Leve</option><option>Medio</option><option>Alto</option></select></div>
-    <div class="form-group"><label class="form-label">Motivo</label>
-      <select id="e-motivo" class="form-select">
-        <option>Impulso</option><option>Falta de planejamento</option>
-        <option>Emocional</option><option>Descuido</option>
-      </select></div>
-  </div>
-  <div class="form-group"><label class="form-label">Solução planejada</label>
-    <input id="e-sol" class="form-input" type="text" placeholder="O que fazer para evitar da próxima vez?"/></div>
-  <div class="form-group"><label class="form-label">Reincidente?</label>
-    <select id="e-rein" class="form-select"><option>Não</option><option>Sim</option></select></div>
-  <div class="modal-btns">
-    <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
-    <button class="btn-save" onclick="saveErro()">Salvar</button>
-  </div>`;
-}
-
-async function saveErro(){
-  DATA.erros.push({
-    id:Date.now().toString(),
-    tipo: document.getElementById('e-tipo').value,
-    data: document.getElementById('e-data').value,
-    categoria: document.getElementById('e-cat').value,
-    gravidade: document.getElementById('e-grav').value,
-    motivo: document.getElementById('e-motivo').value,
-    solucao: document.getElementById('e-sol').value,
-    reincidente: document.getElementById('e-rein').value,
-  });
-  await saveAll(DATA);
-  closeModal();
-  toast('Ponto crítico registrado');
-  refreshActiveScreen('erros');
-}
-
-// ── INIT ─────────────────────────────────────────────────────
-var BACKEND_AUTH = {
-  checked:false,
-  configured:false,
-  authenticated:false,
-};
-const now = new Date();
-document.getElementById('topbar-date').textContent = now.toLocaleDateString('pt-BR',{weekday:'long',day:'2-digit',month:'long'});
-document.getElementById('topbar-month').textContent = monthLabel(currentMonth());
-setDriveStatus(isDriveConfigured() ? 'Pronto para conectar' : 'Drive nao configurado', isDriveConfigured() ? 'idle' : 'warn');
-updateDriveControls();
-renderDashboard();
-
-BACKEND_AUTH = {
-  checked:false,
-  configured:false,
-  authenticated:false,
-};
-
-function backendApiUrl(path){
-  const normalized = String(path || '').replace(/^\/+/,'');
-  return new URL(normalized, window.location.href).toString();
-}
-
-async function backendFetchJson(path, options={}){
-  const response = await fetch(backendApiUrl(path),{
-    cache:'no-store',
-    credentials:'same-origin',
-    ...options,
-  });
-  const raw = await response.text();
-  let payload = null;
-  try{
-    payload = raw ? JSON.parse(raw) : null;
-  }catch{
-    payload = null;
-  }
-  if(!response.ok){
-    const error = new Error(payload?.error || raw || `Servidor retornou ${response.status}.`);
-    error.status = response.status;
-    throw error;
-  }
-  return payload || {};
-}
-
-rememberDriveSession = function(){ return null; };
-
-shouldRestoreDriveSession = function(){
-  return BACKEND_AUTH.authenticated;
-};
-
-isDriveConfigured = function(){
-  if(BACKEND_AUTH.checked) return BACKEND_AUTH.configured;
-  return Boolean(
-    DRIVE_CONFIG.clientId &&
-    DRIVE_CONFIG.clientId.endsWith('.apps.googleusercontent.com') &&
-    !DRIVE_CONFIG.clientId.includes('COLOQUE') &&
-    !DRIVE_CONFIG.clientId.includes('SEU_CLIENT_ID')
-  );
-};
-
-function showLoginGate(){
-  const gate = document.getElementById('login-gate');
-  if(gate) gate.classList.remove('hidden');
-}
-
-function hideLoginGate(){
-  const gate = document.getElementById('login-gate');
-  if(gate) gate.classList.add('hidden');
-}
-
-updateDriveControls = function(){
-  const authBtn = document.getElementById('drive-auth-btn');
-  const syncBtn = document.getElementById('drive-sync-btn');
-  if(authBtn){
-    authBtn.disabled = DRIVE.busy || !BACKEND_AUTH.configured;
-    authBtn.textContent = BACKEND_AUTH.authenticated ? 'Sair' : 'Conectar';
-  }
-  if(syncBtn){
-    syncBtn.disabled = DRIVE.busy || !BACKEND_AUTH.authenticated;
-  }
-};
-
-async function refreshBackendAuthStatus(){
-  try{
-    const payload = await backendFetchJson('api/auth/session');
-    BACKEND_AUTH.checked = true;
-    BACKEND_AUTH.configured = Boolean(payload?.configured);
-    BACKEND_AUTH.authenticated = Boolean(payload?.authenticated);
-    DRIVE.ready = BACKEND_AUTH.authenticated;
-    if(payload?.fileId){
-      DRIVE.fileId = payload.fileId;
-      DB.set('drive_file_id', DRIVE.fileId);
-    }
-    updateDriveControls();
-    return {...BACKEND_AUTH};
-  }catch(error){
-    console.error(error);
-    BACKEND_AUTH.checked = true;
-    BACKEND_AUTH.configured = false;
-    BACKEND_AUTH.authenticated = false;
-    DRIVE.ready = false;
-    updateDriveControls();
-    return {...BACKEND_AUTH};
-  }
-}
-
-async function fetchBackendEnvelope(){
-  return backendFetchJson('api/drive/envelope');
-}
-
-async function saveBackendEnvelope(envelope){
-  const body = new URLSearchParams({
-    payload: JSON.stringify(envelope),
-  }).toString();
-  const payload = await backendFetchJson('api/drive/envelope',{
-    method:'POST',
-    headers:{'Content-Type':'application/x-www-form-urlencoded; charset=UTF-8'},
-    body,
-  });
-  if(payload?.fileId){
-    DRIVE.fileId = payload.fileId;
-    DB.set('drive_file_id', DRIVE.fileId);
-  }
-  return payload;
-}
-
-ensureDriveAccessForSync = async function(){
-  const session = await refreshBackendAuthStatus();
-  return session.authenticated;
-};
-
-syncDriveData = async function({manual=false, initial=false}={}){
-  const session = await refreshBackendAuthStatus();
-  if(!session.authenticated) return 'offline';
-
-  try{
-    setDriveBusy(true);
-    setDriveStatus('Sincronizando...','warn');
-
-    const localEnvelope = getLocalEnvelope();
-    const remotePayload = await fetchBackendEnvelope();
-    const remoteEnvelope = remotePayload?.envelope ? normalizeEnvelope(remotePayload.envelope) : null;
-
-    if(remotePayload?.fileId){
-      DRIVE.fileId = remotePayload.fileId;
-      DB.set('drive_file_id', DRIVE.fileId);
-    }
-
-    if(!remoteEnvelope){
-      await saveBackendEnvelope(localEnvelope);
-      STATE_META = writeStateMeta({
-        updatedAt: localEnvelope.updatedAt,
-        lastSyncedAt: localEnvelope.updatedAt,
-        lastSource: 'sync',
-      });
-      setDriveStatus('Sincronizado com Drive','ok');
-      if(manual || initial) toast('Backup em nuvem criado com sucesso.');
-      return 'pushed';
-    }
-
-    const resolution = compareEnvelopeFreshness(localEnvelope, remoteEnvelope);
-
-    if(resolution.conflict){
-      const backupEnvelope = resolution.winner === 'remote' ? localEnvelope : remoteEnvelope;
-      persistConflictBackup(backupEnvelope, `Conflito resolvido a favor de ${resolution.winner}`);
-    }
-
-    if(resolution.winner === 'remote'){
-      applyEnvelopeLocally(remoteEnvelope, 'drive');
-      setDriveStatus('Dados carregados do Drive','ok');
-      if(manual){
-        toast(resolution.conflict ? 'Drive mais recente. Backup local de conflito salvo.' : 'Dados mais recentes carregados do Drive.');
+    const configured = Boolean(
+      firebaseConfig.apiKey &&
+      firebaseConfig.authDomain &&
+      firebaseConfig.projectId &&
+      firebaseConfig.appId
+    );
+
+    try {
+      if (!configured) {
+        window.SF_FIREBASE = {
+          ready: true,
+          configured: false,
+          auth: null,
+          db: null,
+          login: async () => null,
+          load: async () => null,
+          saveEnvelope: async () => null,
+          logout: async () => null,
+        };
+        window.login = window.SF_FIREBASE.login;
+        window.loginGoogle = window.SF_FIREBASE.login;
+        window.load = window.SF_FIREBASE.load;
+        window.dispatchEvent(new CustomEvent("sf-firebase-ready"));
+      } else {
+        const [{ initializeApp }, authPkg, storePkg] = await Promise.all([
+          import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js"),
+          import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js"),
+          import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js"),
+        ]);
+
+        const app = initializeApp(firebaseConfig);
+        const auth = authPkg.getAuth(app);
+        const db = storePkg.getFirestore(app);
+
+        async function login() {
+          const provider = new authPkg.GoogleAuthProvider();
+          return authPkg.signInWithPopup(auth, provider);
+        }
+
+        async function load() {
+          const user = auth.currentUser;
+          if (!user) return null;
+          const snap = await storePkg.getDoc(storePkg.doc(db, "users", user.uid));
+          return snap.exists() ? snap.data() : null;
+        }
+
+        async function saveEnvelope(envelope) {
+          const user = auth.currentUser;
+          if (!user) return null;
+          await storePkg.setDoc(storePkg.doc(db, "users", user.uid), {
+            name: user.displayName || "",
+            email: user.email || "",
+            envelope,
+            updatedAt: new Date().toISOString(),
+          }, { merge: true });
+          return true;
+        }
+
+        async function logout() {
+          await authPkg.signOut(auth);
+        }
+
+        window.SF_FIREBASE = {
+          ready: true,
+          configured: true,
+          auth,
+          db,
+          login,
+          load,
+          saveEnvelope,
+          logout,
+          onAuthStateChanged: authPkg.onAuthStateChanged,
+        };
+
+        window.login = login;
+        window.loginGoogle = login;
+        window.load = load;
+        window.firebaseLogin = login;
+        window.firebaseLoad = load;
+        window.dispatchEvent(new CustomEvent("sf-firebase-ready"));
       }
-      renderScreen(getActiveScreenId());
-      return 'pulled';
+    } catch (error) {
+      console.error("Falha ao preparar o Firebase:", error);
+      window.SF_FIREBASE = {
+        ready: true,
+        configured: false,
+        auth: null,
+        db: null,
+        login: async () => null,
+        load: async () => null,
+        saveEnvelope: async () => null,
+        logout: async () => null,
+      };
+      window.login = window.SF_FIREBASE.login;
+      window.loginGoogle = window.SF_FIREBASE.login;
+      window.load = window.SF_FIREBASE.load;
+      window.dispatchEvent(new CustomEvent("sf-firebase-ready"));
+    }
+  </script>
+
+  <script>
+    const STORAGE_KEY = "sf_app_envelope";
+    const LEGACY_STORAGE_KEY = "fos_app_envelope";
+    const GATE_KEY = "sf_gate_open";
+    const DEFAULT_SCREEN = "dashboard";
+    const emptyData = () => ({ transactions: [], metas: [], dividas: [], erros: [] });
+
+    const state = {
+      screen: DEFAULT_SCREEN,
+      gateUnlocked: localStorage.getItem(GATE_KEY) === "1",
+      envelope: readEnvelopeFromStorage(),
+      backend: null,
+      firebase: {
+        ready: false,
+        configured: false,
+        user: null,
+      },
+      syncing: false,
+      syncTimer: null,
+    };
+
+    const refs = {
+      loginGate: document.getElementById("loginGate"),
+      appShell: document.getElementById("appShell"),
+      gateHint: document.getElementById("gateHint"),
+      enterButton: document.getElementById("enterButton"),
+      connectButton: document.getElementById("connectButton"),
+      syncButton: document.getElementById("syncButton"),
+      cloudStatus: document.getElementById("cloudStatus"),
+      userBadge: document.getElementById("userBadge"),
+      welcomeText: document.getElementById("welcomeText"),
+      saldoAtual: document.getElementById("saldoAtual"),
+      totalEntradas: document.getElementById("totalEntradas"),
+      totalSaidas: document.getElementById("totalSaidas"),
+      scoreResumo: document.getElementById("scoreResumo"),
+      overviewList: document.getElementById("overviewList"),
+      recentList: document.getElementById("recentList"),
+      transactionsList: document.getElementById("transactionsList"),
+      goalsList: document.getElementById("goalsList"),
+      debtsList: document.getElementById("debtsList"),
+      reportList: document.getElementById("reportList"),
+      categoryList: document.getElementById("categoryList"),
+      scoreRing: document.getElementById("scoreRing"),
+      scoreValue: document.getElementById("scoreValue"),
+      insightsList: document.getElementById("insightsList"),
+      mistakesList: document.getElementById("mistakesList"),
+      toast: document.getElementById("toast"),
+      screens: [...document.querySelectorAll(".screen")],
+      navButtons: [...document.querySelectorAll(".nav-button")],
+      forms: {
+        transaction: document.getElementById("transactionForm"),
+        goal: document.getElementById("goalForm"),
+        debt: document.getElementById("debtForm"),
+        mistake: document.getElementById("mistakeForm"),
+      },
+    };
+
+    function uid() {
+      return `${Date.now()}${Math.floor(Math.random() * 1000)}`;
     }
 
-    if(resolution.winner === 'local'){
-      await saveBackendEnvelope(localEnvelope);
-      STATE_META = writeStateMeta({
-        updatedAt: localEnvelope.updatedAt,
-        lastSyncedAt: localEnvelope.updatedAt,
-        lastSource: 'sync',
-      });
-      setDriveStatus('Sincronizado com Drive','ok');
-      if(manual){
-        toast(resolution.conflict ? 'Sua versão local venceu. Backup do conflito foi salvo.' : 'Dados enviados para o Drive.');
-      }
-      return 'pushed';
+    function nowIso() {
+      return new Date().toISOString();
     }
 
-    STATE_META = writeStateMeta({
-      updatedAt: localEnvelope.updatedAt || remoteEnvelope.updatedAt || isoNow(),
-      lastSyncedAt: remoteEnvelope.updatedAt || localEnvelope.updatedAt || isoNow(),
-      lastSource: 'sync',
-    });
-    setDriveStatus('Drive em dia','ok');
-    if(manual) toast('Nada para sincronizar. Tudo em dia.');
-    return 'noop';
-  }catch(error){
-    console.error(error);
-    BACKEND_AUTH.authenticated = false;
-    DRIVE.ready = false;
-    setDriveStatus('Sessão do Drive indisponível. Clique em entrar para reconectar.','warn');
-    updateDriveControls();
-    if(manual) throw error;
-    return 'error';
-  }finally{
-    setDriveBusy(false);
-  }
-};
+    function todayValue() {
+      return new Date().toISOString().slice(0, 10);
+    }
 
-async function saveAll(data){
-  DATA = persistLocalData(data, {
-    updatedAt: isoNow(),
-    lastSource: 'local',
-  });
-  if(DRIVE_CONFIG.autoSync){
-    const session = await refreshBackendAuthStatus();
-    if(session.authenticated){
-      const result = await syncDriveData();
-      if(result === 'error'){
-        toast('Salvo localmente. A nuvem não respondeu agora.');
+    function formatCurrency(value) {
+      return new Intl.NumberFormat("pt-BR", { style: "currency", currency: "BRL" }).format(Number(value || 0));
+    }
+
+    function formatDate(value) {
+      if (!value) return "Sem data";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return String(value);
+      return new Intl.DateTimeFormat("pt-BR").format(date);
+    }
+
+    function escapeHtml(value) {
+      return String(value || "")
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#39;");
+    }
+
+    function safeParse(raw) {
+      try {
+        return JSON.parse(raw);
+      } catch {
+        return null;
       }
     }
-  }
-  return DATA;
-}
 
-async function connectDrive(){
-  const session = await refreshBackendAuthStatus();
-  if(!session.configured){
-    setDriveStatus('Configuração pendente','warn');
-    toast('Preencha config/oauth.local.json com o client secret do Google.');
-    return;
-  }
-  if(session.authenticated){
-    try{
-      await backendFetchJson('api/auth/logout',{
-        method:'POST',
-      });
-      BACKEND_AUTH.authenticated = false;
-      DRIVE.ready = false;
-      DRIVE.fileId = '';
-      DB.set('drive_file_id','');
-      setAppEntered(false);
-      showLoginGate();
-      setDriveStatus('Conta desconectada. Clique em entrar para conectar o Drive.','idle');
-      updateDriveControls();
-      toast('Conta desconectada.');
-    }catch(error){
-      console.error(error);
-      toast(error.message || 'Nao foi possivel sair da conta.');
-    }
-    return;
-  }
-  if(!session.authenticated){
-    window.location.href = backendApiUrl('api/auth/google/start');
-    return;
-  }
-  try{
-    const result = await syncDriveData({manual:true, initial:true});
-    if(result === 'noop'){
-      toast('Drive conectado com sucesso.');
-    }
-  }catch(error){
-    console.error(error);
-    toast(error.message || 'Não foi possível sincronizar com o Drive.');
-  }
-}
-
-async function manualDriveSync(){
-  const session = await refreshBackendAuthStatus();
-  if(!session.configured){
-    setDriveStatus('Configuração pendente','warn');
-    toast('Preencha config/oauth.local.json com o client secret do Google.');
-    return;
-  }
-  if(!session.authenticated){
-    window.location.href = backendApiUrl('api/auth/google/start');
-    return;
-  }
-  try{
-    await syncDriveData({manual:true});
-  }catch(error){
-    console.error(error);
-    toast(error.message || 'Não foi possível sincronizar com o Drive.');
-  }
-}
-
-async function enterApp(){
-  setAppEntered(true);
-  const session = await refreshBackendAuthStatus();
-  if(session.configured && !session.authenticated){
-    window.location.href = backendApiUrl('api/auth/google/start');
-    return;
-  }
-  hideLoginGate();
-  if(session.authenticated && DRIVE_CONFIG.autoSync){
-    await syncDriveData({initial:true});
-  }
-}
-
-async function initBackendDrive(){
-  DB.setRaw(STORAGE_PREFIX + DRIVE_SESSION_KEY, null);
-  DRIVE.accessToken = '';
-
-  const params = new URLSearchParams(window.location.search);
-  const auth = params.get('auth');
-  const message = params.get('message');
-
-  if(auth){
-    history.replaceState({},'',window.location.pathname);
-  }
-
-  const session = await refreshBackendAuthStatus();
-
-  if(auth === 'success'){
-    await enterApp();
-    return;
-  }
-
-  if(auth === 'error'){
-    toast(message || 'Não foi possível concluir o login com Google.');
-  }
-
-  if(session.configured){
-    setDriveStatus(session.authenticated ? 'Conta conectada. Clique em entrar para continuar.' : 'Clique em entrar para conectar o Drive.','idle');
-  }else{
-    setDriveStatus('OAuth do servidor não configurado','warn');
-  }
-  updateDriveControls();
-}
-
-const BACKEND_ONLY = {
-  backendFetchJson,
-  refreshBackendAuthStatus,
-  syncDriveData,
-};
-
-function isDriveNotFoundError(error){
-  const message = String(error?.message || error || '').toLowerCase();
-  return message.includes('file not found') || message.includes('=media') || message.includes('notfound');
-}
-
-function clearKnownDriveFileId(){
-  DRIVE.fileId = '';
-  DB.set('drive_file_id','');
-}
-
-BACKEND_ONLY.syncDriveData = async function({manual=false, initial=false}={}){
-  const session = await BACKEND_ONLY.refreshBackendAuthStatus();
-  if(!session.authenticated) return 'offline';
-
-  try{
-    setDriveBusy(true);
-    setDriveStatus('Sincronizando...','warn');
-
-    const localEnvelope = getLocalEnvelope();
-    let remotePayload;
-    try{
-      remotePayload = await fetchBackendEnvelope();
-    }catch(error){
-      if(!isDriveNotFoundError(error)) throw error;
-      clearKnownDriveFileId();
-      remotePayload = { fileId:'', envelope:null };
-    }
-    const remoteEnvelope = remotePayload?.envelope ? normalizeEnvelope(remotePayload.envelope) : null;
-
-    if(remotePayload?.fileId){
-      DRIVE.fileId = remotePayload.fileId;
-      DB.set('drive_file_id', DRIVE.fileId);
+    function normalizeEnvelope(input) {
+      const data = input && typeof input === "object" ? input.data || input : {};
+      return {
+        version: Number(input?.version || 1),
+        updatedAt: typeof input?.updatedAt === "string" ? input.updatedAt : nowIso(),
+        data: {
+          transactions: Array.isArray(data.transactions) ? data.transactions : [],
+          metas: Array.isArray(data.metas) ? data.metas : [],
+          dividas: Array.isArray(data.dividas) ? data.dividas : [],
+          erros: Array.isArray(data.erros) ? data.erros : [],
+        },
+      };
     }
 
-    if(!remoteEnvelope){
-      await saveBackendEnvelope(localEnvelope);
-      STATE_META = writeStateMeta({
-        updatedAt: localEnvelope.updatedAt,
-        lastSyncedAt: localEnvelope.updatedAt,
-        lastSource: 'sync',
-      });
-      setDriveStatus('Sincronizado com Drive','ok');
-      if(manual || initial) toast('Backup em nuvem criado com sucesso.');
-      return 'pushed';
+    function readEnvelopeFromStorage() {
+      const raw = localStorage.getItem(STORAGE_KEY) || localStorage.getItem(LEGACY_STORAGE_KEY);
+      return raw ? normalizeEnvelope(safeParse(raw)) : normalizeEnvelope({ version: 1, updatedAt: nowIso(), data: emptyData() });
     }
 
-    const resolution = compareEnvelopeFreshness(localEnvelope, remoteEnvelope);
-
-    if(resolution.conflict){
-      const backupEnvelope = resolution.winner === 'remote' ? localEnvelope : remoteEnvelope;
-      persistConflictBackup(backupEnvelope, `Conflito resolvido a favor de ${resolution.winner}`);
+    function saveEnvelopeToStorage() {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state.envelope));
     }
 
-    if(resolution.winner === 'remote'){
-      applyEnvelopeLocally(remoteEnvelope, 'drive');
-      setDriveStatus('Dados carregados do Drive','ok');
-      if(manual){
-        toast(resolution.conflict ? 'Drive mais recente. Backup local de conflito salvo.' : 'Dados mais recentes carregados do Drive.');
+    function touchEnvelope() {
+      state.envelope.updatedAt = nowIso();
+      saveEnvelopeToStorage();
+    }
+
+    function unlockApp() {
+      state.gateUnlocked = true;
+      localStorage.setItem(GATE_KEY, "1");
+      refs.loginGate.classList.add("hidden");
+      refs.appShell.classList.remove("hidden");
+    }
+
+    function lockApp() {
+      state.gateUnlocked = false;
+      localStorage.removeItem(GATE_KEY);
+      refs.appShell.classList.add("hidden");
+      refs.loginGate.classList.remove("hidden");
+    }
+
+    function showToast(message) {
+      refs.toast.textContent = message;
+      refs.toast.classList.remove("hidden");
+      clearTimeout(showToast.timer);
+      showToast.timer = setTimeout(() => refs.toast.classList.add("hidden"), 3200);
+    }
+
+    function isEnvelopeEmpty(envelope) {
+      const data = envelope?.data || emptyData();
+      return !data.transactions.length && !data.metas.length && !data.dividas.length && !data.erros.length;
+    }
+
+    function buildUrl(relativePath) {
+      return new URL(relativePath, window.location.href).toString();
+    }
+
+    async function safeJsonRequest(relativePath, options) {
+      try {
+        const response = await fetch(buildUrl(relativePath), {
+          credentials: "same-origin",
+          cache: "no-store",
+          ...options,
+        });
+        const text = await response.text();
+        const parsed = safeParse(text);
+        if (!parsed || typeof parsed !== "object") return null;
+        return { ok: response.ok, status: response.status, data: parsed };
+      } catch {
+        return null;
       }
-      renderScreen(getActiveScreenId());
-      return 'pulled';
     }
 
-    if(resolution.winner === 'local'){
-      await saveBackendEnvelope(localEnvelope);
-      STATE_META = writeStateMeta({
-        updatedAt: localEnvelope.updatedAt,
-        lastSyncedAt: localEnvelope.updatedAt,
-        lastSource: 'sync',
-      });
-      setDriveStatus('Sincronizado com Drive','ok');
-      if(manual){
-        toast(resolution.conflict ? 'Sua versao local venceu. Backup do conflito foi salvo.' : 'Dados enviados para o Drive.');
+    async function refreshBackendSession() {
+      const result = await safeJsonRequest("./api/auth/session");
+      if (!result || typeof result.data.configured !== "boolean") {
+        state.backend = null;
+        return;
       }
-      return 'pushed';
+      state.backend = result.data;
     }
 
-    STATE_META = writeStateMeta({
-      updatedAt: localEnvelope.updatedAt || remoteEnvelope.updatedAt || isoNow(),
-      lastSyncedAt: remoteEnvelope.updatedAt || localEnvelope.updatedAt || isoNow(),
-      lastSource: 'sync',
-    });
-    setDriveStatus('Drive em dia','ok');
-    if(manual) toast('Nada para sincronizar. Tudo em dia.');
-    return 'noop';
-  }catch(error){
-    console.error(error);
-    if(error?.status === 401){
-      BACKEND_AUTH.authenticated = false;
-      DRIVE.ready = false;
-      setDriveStatus('Sessao do Drive indisponivel. Clique em entrar para reconectar.','warn');
-    }else{
-      setDriveStatus('Falha na nuvem. Tente sincronizar novamente.','warn');
-    }
-    updateDriveControls();
-    if(manual) throw error;
-    return 'error';
-  }finally{
-    setDriveBusy(false);
-  }
-};
-
-function publicClientConfigured(){
-  return Boolean(
-    DRIVE_CONFIG.clientId &&
-    DRIVE_CONFIG.clientId.endsWith('.apps.googleusercontent.com') &&
-    !DRIVE_CONFIG.clientId.includes('COLOQUE') &&
-    !DRIVE_CONFIG.clientId.includes('SEU_CLIENT_ID')
-  );
-}
-
-function backendConfigured(){
-  return Boolean(BACKEND_AUTH?.configured);
-}
-
-function clientOnlyMode(){
-  return !backendConfigured() && publicClientConfigured();
-}
-
-function showLoginGate(){
-  const gate = document.getElementById('login-gate');
-  if(gate) gate.classList.remove('hidden');
-}
-
-function hideLoginGate(){
-  const gate = document.getElementById('login-gate');
-  if(gate) gate.classList.add('hidden');
-}
-
-function persistClientSession(active){
-  DB.set(DRIVE_SESSION_KEY, {
-    active: Boolean(active),
-    fileId: DRIVE.fileId || DB.get('drive_file_id') || '',
-    updatedAt: isoNow(),
-  });
-}
-
-rememberDriveSession = function(active){
-  if(backendConfigured()) return null;
-  persistClientSession(active);
-  return null;
-};
-
-shouldRestoreDriveSession = function(){
-  if(backendConfigured()) return Boolean(BACKEND_AUTH.authenticated);
-  return Boolean(DB.get(DRIVE_SESSION_KEY)?.active);
-};
-
-isDriveConfigured = function(){
-  return backendConfigured() || publicClientConfigured();
-};
-
-updateDriveControls = function(){
-  const authBtn = document.getElementById('drive-auth-btn');
-  const syncBtn = document.getElementById('drive-sync-btn');
-  if(authBtn){
-    authBtn.disabled = DRIVE.busy || !isDriveConfigured();
-    if(backendConfigured()){
-      authBtn.textContent = BACKEND_AUTH.authenticated ? 'Sair' : 'Conectar';
-    }else{
-      authBtn.textContent = DRIVE.ready ? 'Conectado' : (shouldRestoreDriveSession() ? 'Renovar' : 'Conectar');
-    }
-  }
-  if(syncBtn){
-    if(backendConfigured()){
-      syncBtn.disabled = DRIVE.busy || !BACKEND_AUTH.authenticated;
-    }else{
-      syncBtn.disabled = DRIVE.busy || (!DRIVE.ready && !shouldRestoreDriveSession());
-    }
-  }
-};
-
-function resetDriveSessionState(){
-  DRIVE.ready = false;
-  DRIVE.accessToken = '';
-  DRIVE.fileId = '';
-  DB.set('drive_file_id','');
-  persistClientSession(false);
-}
-
-function ensureGoogleIdentityScript(){
-  if(window.google?.accounts?.oauth2) return Promise.resolve();
-
-  return new Promise((resolve,reject)=>{
-    const existing = document.getElementById('google-gis-script');
-    if(existing){
-      existing.addEventListener('load',()=>resolve(),{once:true});
-      existing.addEventListener('error',()=>reject(new Error('Nao foi possivel carregar o login Google.')),{once:true});
-      return;
+    function currentCloudMode() {
+      if (state.backend?.authenticated) return "backend";
+      if (state.firebase.user) return "firebase";
+      return "local";
     }
 
-    const script = document.createElement('script');
-    script.id = 'google-gis-script';
-    script.src = 'https://accounts.google.com/gsi/client';
-    script.async = true;
-    script.defer = true;
-    script.onload = ()=>resolve();
-    script.onerror = ()=>reject(new Error('Nao foi possivel carregar o login Google.'));
-    document.head.appendChild(script);
-  });
-}
-
-async function gisEnsureDriveAccess(){
-  if(DRIVE.ready) return true;
-  if(!publicClientConfigured()) return false;
-
-  try{
-    await ensureGoogleIdentityScript();
-    await requestDriveAccess(shouldRestoreDriveSession() ? '' : 'consent');
-    return Boolean(DRIVE.ready);
-  }catch(error){
-    console.error(error);
-    setDriveStatus('Login Google pendente','warn');
-    updateDriveControls();
-    return false;
-  }
-}
-
-async function gisSyncDriveData(options={}){
-  if(!DRIVE.ready) return 'offline';
-
-  const {manual=false, initial=false} = options;
-
-  try{
-    setDriveBusy(true);
-    setDriveStatus('Sincronizando...','warn');
-
-    const localEnvelope = getLocalEnvelope();
-    let file = await findDriveFile();
-    if(!file && DRIVE.fileId){
-      file = await getDriveFileById(DRIVE.fileId).catch(()=>null);
+    async function readBackendEnvelope() {
+      const result = await safeJsonRequest("./api/drive/envelope");
+      if (!result) return { ok: false, message: "Backend indisponível." };
+      if (!result.ok) return { ok: false, message: result.data?.error || "Falha ao ler o Drive." };
+      return { ok: true, envelope: result.data?.envelope ? normalizeEnvelope(result.data.envelope) : null };
     }
 
-    if(!file?.id){
-      const saved = await createDriveFile(localEnvelope);
-      DRIVE.fileId = saved.id || '';
-      DB.set('drive_file_id', DRIVE.fileId);
-      STATE_META = writeStateMeta({
-        updatedAt: localEnvelope.updatedAt,
-        lastSyncedAt: localEnvelope.updatedAt,
-        lastSource: 'sync',
+    async function writeBackendEnvelope() {
+      const result = await safeJsonRequest("./api/drive/envelope", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ payload: JSON.stringify(state.envelope) }),
       });
-      setDriveStatus('Sincronizado com Drive','ok');
-      if(manual || initial) toast('Backup em nuvem criado com sucesso.');
-      return 'pushed';
-    }
-
-    file = await ensurePreferredDriveFile(file);
-    DRIVE.fileId = file.id;
-    DB.set('drive_file_id', DRIVE.fileId);
-
-    let remoteEnvelope;
-    try{
-      remoteEnvelope = await fetchDriveEnvelope(file.id);
-    }catch(error){
-      if(!isDriveNotFoundError(error)) throw error;
-      clearKnownDriveFileId();
-      const saved = await createDriveFile(localEnvelope);
-      DRIVE.fileId = saved.id || '';
-      DB.set('drive_file_id', DRIVE.fileId);
-      STATE_META = writeStateMeta({
-        updatedAt: localEnvelope.updatedAt,
-        lastSyncedAt: localEnvelope.updatedAt,
-        lastSource: 'sync',
-      });
-      setDriveStatus('Sincronizado com Drive','ok');
-      if(manual || initial) toast('Backup em nuvem recriado com sucesso.');
-      return 'pushed';
-    }
-    const resolution = compareEnvelopeFreshness(localEnvelope, remoteEnvelope);
-
-    if(resolution.conflict){
-      const backupEnvelope = resolution.winner === 'remote' ? localEnvelope : remoteEnvelope;
-      persistConflictBackup(backupEnvelope, `Conflito resolvido a favor de ${resolution.winner}`);
-    }
-
-    if(resolution.winner === 'remote'){
-      applyEnvelopeLocally(remoteEnvelope, 'drive');
-      setDriveStatus('Dados carregados do Drive','ok');
-      if(manual){
-        toast(resolution.conflict ? 'Drive mais recente. Backup local de conflito salvo.' : 'Dados mais recentes carregados do Drive.');
+      if (!result || !result.ok) {
+        throw new Error(result?.data?.error || "Falha na nuvem. Tente sincronizar novamente.");
       }
-      renderScreen(getActiveScreenId());
-      return 'pulled';
     }
 
-    if(resolution.winner === 'local'){
-      const saved = await updateDriveFile(file.id, localEnvelope);
-      DRIVE.fileId = saved.id || file.id;
-      DB.set('drive_file_id', DRIVE.fileId);
-      STATE_META = writeStateMeta({
-        updatedAt: localEnvelope.updatedAt,
-        lastSyncedAt: localEnvelope.updatedAt,
-        lastSource: 'sync',
-      });
-      setDriveStatus('Sincronizado com Drive','ok');
-      if(manual){
-        toast(resolution.conflict ? 'Sua versao local venceu. Backup do conflito foi salvo.' : 'Dados enviados para o Drive.');
+    async function readFirebaseEnvelope() {
+      const payload = await window.SF_FIREBASE?.load?.();
+      return payload?.envelope ? normalizeEnvelope(payload.envelope) : null;
+    }
+
+    async function writeFirebaseEnvelope() {
+      await window.SF_FIREBASE?.saveEnvelope?.(state.envelope);
+    }
+
+    function adoptEnvelope(remoteEnvelope) {
+      state.envelope = normalizeEnvelope(remoteEnvelope);
+      saveEnvelopeToStorage();
+      render();
+    }
+
+    async function syncWithCloud({ silent = false } = {}) {
+      const mode = currentCloudMode();
+      if (mode === "local") {
+        if (!silent) showToast("Nenhuma nuvem conectada no momento.");
+        return;
       }
-      return 'pushed';
-    }
 
-    STATE_META = writeStateMeta({
-      updatedAt: localEnvelope.updatedAt || remoteEnvelope.updatedAt || isoNow(),
-      lastSyncedAt: remoteEnvelope.updatedAt || localEnvelope.updatedAt || isoNow(),
-      lastSource: 'sync',
-    });
-    setDriveStatus('Drive em dia','ok');
-    if(manual) toast('Nada para sincronizar. Tudo em dia.');
-    return 'noop';
-  }catch(error){
-    console.error(error);
-    setDriveStatus('Falha na nuvem','warn');
-    if(manual) throw error;
-    return 'error';
-  }finally{
-    setDriveBusy(false);
-  }
-}
+      state.syncing = true;
+      updateCloudUi();
 
-ensureDriveAccessForSync = async function(){
-  if(backendConfigured()){
-    const session = await BACKEND_ONLY.refreshBackendAuthStatus();
-    return Boolean(session.authenticated);
-  }
-  return gisEnsureDriveAccess();
-};
+      try {
+        let remoteEnvelope = null;
+        if (mode === "backend") {
+          const response = await readBackendEnvelope();
+          if (!response.ok) throw new Error(response.message);
+          remoteEnvelope = response.envelope;
+        } else {
+          remoteEnvelope = await readFirebaseEnvelope();
+        }
 
-syncDriveData = async function(options={}){
-  if(backendConfigured()){
-    return BACKEND_ONLY.syncDriveData(options);
-  }
-  return gisSyncDriveData(options);
-};
+        const localTime = Date.parse(state.envelope.updatedAt || 0) || 0;
+        const remoteTime = Date.parse(remoteEnvelope?.updatedAt || 0) || 0;
 
-saveAll = async function(data){
-  DATA = persistLocalData(data, {
-    updatedAt: isoNow(),
-    lastSource: 'local',
-  });
+        if (!remoteEnvelope) {
+          if (!isEnvelopeEmpty(state.envelope)) {
+            if (mode === "backend") await writeBackendEnvelope();
+            else await writeFirebaseEnvelope();
+          }
+        } else if (remoteTime > localTime) {
+          adoptEnvelope(remoteEnvelope);
+        } else if (localTime > remoteTime || isEnvelopeEmpty(remoteEnvelope)) {
+          if (mode === "backend") await writeBackendEnvelope();
+          else await writeFirebaseEnvelope();
+        }
 
-  if(DRIVE_CONFIG.autoSync){
-    const canSync = await ensureDriveAccessForSync();
-    if(canSync){
-      const result = await syncDriveData();
-      if(result === 'error'){
-        toast('Salvo localmente. A nuvem nao respondeu agora.');
-      }
-    }else if(publicClientConfigured() && clientOnlyMode()){
-      toast('Salvo localmente. Entre com Google para enviar para a nuvem.');
-    }
-  }
-
-  return DATA;
-};
-
-connectDrive = async function(){
-  if(backendConfigured()){
-    const session = await BACKEND_ONLY.refreshBackendAuthStatus();
-    if(!session.configured){
-      setDriveStatus('Configuracao pendente','warn');
-      toast('Preencha config/oauth.local.json com o client secret do Google.');
-      return;
-    }
-    if(session.authenticated){
-      try{
-        await backendFetchJson('api/auth/logout',{method:'POST'});
-        BACKEND_AUTH.authenticated = false;
-        resetDriveSessionState();
-        setAppEntered(false);
-        showLoginGate();
-        setDriveStatus('Conta desconectada. Clique em entrar para conectar o Drive.','idle');
-        updateDriveControls();
-        toast('Conta desconectada.');
-      }catch(error){
+        if (!silent) showToast("Sincronização concluída.");
+      } catch (error) {
         console.error(error);
-        toast(error.message || 'Nao foi possivel sair da conta.');
+        if (!silent) showToast(String(error.message || error));
+      } finally {
+        state.syncing = false;
+        updateCloudUi();
       }
-      return;
     }
-    window.location.href = backendApiUrl('api/auth/google/start');
-    return;
-  }
 
-  if(!publicClientConfigured()){
-    setDriveStatus('Configuracao pendente','warn');
-    toast('Preencha o clientId do Google em drive-config.js.');
-    return;
-  }
-
-  try{
-    const hasAccess = await gisEnsureDriveAccess();
-    if(!hasAccess) return;
-    const result = await gisSyncDriveData({manual:true, initial:true});
-    if(result === 'noop'){
-      toast('Drive conectado com sucesso.');
+    function queueSync() {
+      clearTimeout(state.syncTimer);
+      if (currentCloudMode() === "local") return;
+      state.syncTimer = setTimeout(() => { syncWithCloud({ silent: true }); }, 900);
     }
-  }catch(error){
-    console.error(error);
-    resetDriveSessionState();
-    setDriveStatus('Falha ao conectar','warn');
-    toast(error.message || 'Nao foi possivel conectar ao Drive.');
-  }finally{
-    updateDriveControls();
-  }
-};
 
-manualDriveSync = async function(){
-  if(backendConfigured()){
-    const session = await BACKEND_ONLY.refreshBackendAuthStatus();
-    if(!session.configured){
-      setDriveStatus('Configuracao pendente','warn');
-      toast('Preencha config/oauth.local.json com o client secret do Google.');
-      return;
+    function serializeForm(form) {
+      const formData = new FormData(form);
+      return Object.fromEntries(formData.entries());
     }
-    if(!session.authenticated){
-      window.location.href = backendApiUrl('api/auth/google/start');
-      return;
+
+    function removeItem(collection, id) {
+      state.envelope.data[collection] = state.envelope.data[collection].filter((item) => item.id !== id);
+      touchEnvelope();
+      render();
+      queueSync();
     }
-    try{
-      await BACKEND_ONLY.syncDriveData({manual:true});
-    }catch(error){
-      console.error(error);
-      toast(error.message || 'Nao foi possivel sincronizar com o Drive.');
+
+    function addTransaction(event) {
+      event.preventDefault();
+      const values = serializeForm(refs.forms.transaction);
+      state.envelope.data.transactions.unshift({
+        id: uid(),
+        tipo: values.tipo,
+        valor: Number(values.valor || 0),
+        data: values.data || todayValue(),
+        categoria: values.categoria || "Geral",
+        descricao: values.descricao || "",
+        pagamento: values.pagamento || "",
+        classificacao: values.classificacao || "",
+        observacao: values.observacao || "",
+        createdAt: nowIso(),
+      });
+      refs.forms.transaction.reset();
+      refs.forms.transaction.elements.data.value = todayValue();
+      touchEnvelope();
+      render();
+      queueSync();
+      showToast("Transação salva.");
     }
-    return;
-  }
 
-  try{
-    const hasAccess = await gisEnsureDriveAccess();
-    if(!hasAccess) return;
-    await gisSyncDriveData({manual:true});
-  }catch(error){
-    console.error(error);
-    toast(error.message || 'Nao foi possivel sincronizar com o Drive.');
-  }
-};
-
-enterApp = async function(){
-  setAppEntered(true);
-
-  if(backendConfigured()){
-    const session = await BACKEND_ONLY.refreshBackendAuthStatus();
-    if(session.configured && !session.authenticated){
-      window.location.href = backendApiUrl('api/auth/google/start');
-      return;
+    function addGoal(event) {
+      event.preventDefault();
+      const values = serializeForm(refs.forms.goal);
+      state.envelope.data.metas.unshift({
+        id: uid(),
+        nome: values.nome,
+        alvo: Number(values.alvo || 0),
+        atual: Number(values.atual || 0),
+        prazo: values.prazo || "",
+        status: values.status || "Em andamento",
+        observacao: values.observacao || "",
+        createdAt: nowIso(),
+      });
+      refs.forms.goal.reset();
+      touchEnvelope();
+      render();
+      queueSync();
+      showToast("Meta salva.");
     }
-    hideLoginGate();
-    if(session.authenticated && DRIVE_CONFIG.autoSync){
-      await BACKEND_ONLY.syncDriveData({initial:true});
+
+    function addDebt(event) {
+      event.preventDefault();
+      const values = serializeForm(refs.forms.debt);
+      state.envelope.data.dividas.unshift({
+        id: uid(),
+        nome: values.nome,
+        valor_total: Number(values.valor_total || 0),
+        parcela: Number(values.parcela || 0),
+        pagas: Number(values.pagas || 0),
+        total_parcelas: Number(values.total_parcelas || 0),
+        status: values.status || "Ativo",
+        prioridade: values.prioridade || "Média",
+        createdAt: nowIso(),
+      });
+      refs.forms.debt.reset();
+      refs.forms.debt.elements.pagas.value = "0";
+      touchEnvelope();
+      render();
+      queueSync();
+      showToast("Dívida salva.");
     }
-    return;
-  }
 
-  if(clientOnlyMode()){
-    const hasAccess = await gisEnsureDriveAccess();
-    if(!hasAccess) return;
-    hideLoginGate();
-    if(DRIVE_CONFIG.autoSync){
-      await gisSyncDriveData({initial:true});
+    function addMistake(event) {
+      event.preventDefault();
+      const values = serializeForm(refs.forms.mistake);
+      state.envelope.data.erros.unshift({
+        id: uid(),
+        tipo: values.tipo,
+        data: values.data || todayValue(),
+        categoria: values.categoria || "",
+        gravidade: values.gravidade || "Leve",
+        motivo: values.motivo || "",
+        solucao: values.solucao || "",
+        reincidente: values.reincidente || "Não",
+        createdAt: nowIso(),
+      });
+      refs.forms.mistake.reset();
+      refs.forms.mistake.elements.data.value = todayValue();
+      touchEnvelope();
+      render();
+      queueSync();
+      showToast("Erro registrado.");
     }
-    return;
-  }
 
-  hideLoginGate();
-};
+    function getMetrics() {
+      const transactions = state.envelope.data.transactions;
+      const metas = state.envelope.data.metas;
+      const dividas = state.envelope.data.dividas;
+      const erros = state.envelope.data.erros;
 
-async function initializeUnifiedAuth(){
-  try{
-    BACKEND_AUTH = await BACKEND_ONLY.refreshBackendAuthStatus();
-  }catch(error){
-    console.error(error);
-  }
+      const entradas = transactions.filter((item) => item.tipo === "Entrada").reduce((sum, item) => sum + Number(item.valor || 0), 0);
+      const saidas = transactions.filter((item) => item.tipo === "Saída").reduce((sum, item) => sum + Number(item.valor || 0), 0);
+      const saldo = entradas - saidas;
+      const dividaRestante = dividas.reduce((sum, item) => {
+        const restante = Math.max(Number(item.valor_total || 0) - (Number(item.parcela || 0) * Number(item.pagas || 0)), 0);
+        return sum + restante;
+      }, 0);
+      const metasPct = metas.length
+        ? metas.reduce((sum, item) => sum + Math.min((Number(item.atual || 0) / Math.max(Number(item.alvo || 1), 1)) * 100, 100), 0) / metas.length
+        : 0;
+      const expensesByCategory = new Map();
+      transactions.filter((item) => item.tipo === "Saída").forEach((item) => {
+        const key = item.categoria || "Sem categoria";
+        expensesByCategory.set(key, (expensesByCategory.get(key) || 0) + Number(item.valor || 0));
+      });
+      const categorias = [...expensesByCategory.entries()].sort((a, b) => b[1] - a[1]);
 
-  if(clientOnlyMode()){
-    try{
-      await ensureGoogleIdentityScript();
-    }catch(error){
-      console.error(error);
-      setDriveStatus('Falha ao carregar login Google','warn');
+      let score = 100;
+      if (saldo < 0) score -= 28;
+      if (saidas > entradas && entradas > 0) score -= 18;
+      score -= Math.min(erros.length * 7, 25);
+      score -= Math.min(dividaRestante / 250, 22);
+      score += Math.min(metasPct / 12, 10);
+      score = Math.max(0, Math.min(100, Math.round(score)));
+
+      const insights = [];
+      if (saldo >= 0) insights.push(`Seu saldo atual está ${formatCurrency(saldo)} acima do zero.`);
+      else insights.push(`Seu saldo atual está negativo em ${formatCurrency(Math.abs(saldo))}.`);
+      if (categorias[0]) insights.push(`A categoria com maior peso nas saídas é ${categorias[0][0]}.`);
+      if (metasPct >= 70) insights.push("Suas metas estão avançando bem e merecem constância.");
+      else if (metas.length) insights.push("Suas metas pedem um reforço de caixa para acelerar o progresso.");
+      if (dividaRestante > 0) insights.push(`Ainda faltam ${formatCurrency(dividaRestante)} para zerar suas dívidas registradas.`);
+      if (erros.length) insights.push(`Você registrou ${erros.length} alerta(s) de padrão financeiro para observar.`);
+      if (!insights.length) insights.push("Comece registrando suas primeiras movimentações para receber leituras melhores.");
+
+      return { entradas, saidas, saldo, dividaRestante, metasPct, categorias, score, insights };
     }
-  }
 
-  const params = new URLSearchParams(window.location.search);
-  const auth = params.get('auth');
-  const message = params.get('message');
+    function renderSummary(metrics) {
+      refs.saldoAtual.textContent = formatCurrency(metrics.saldo);
+      refs.totalEntradas.textContent = formatCurrency(metrics.entradas);
+      refs.totalSaidas.textContent = formatCurrency(metrics.saidas);
+      refs.scoreResumo.textContent = String(metrics.score);
+    }
 
-  if(auth){
-    history.replaceState({},'',window.location.pathname);
-  }
+    function renderOverview(metrics) {
+      const lines = [
+        ["Reserva entre entradas e saídas", formatCurrency(metrics.saldo)],
+        ["Dívida restante", formatCurrency(metrics.dividaRestante)],
+        ["Avanço médio das metas", `${metrics.metasPct.toFixed(0)}%`],
+        ["Registros no período", `${state.envelope.data.transactions.length + state.envelope.data.metas.length + state.envelope.data.dividas.length + state.envelope.data.erros.length}`],
+      ];
+      refs.overviewList.innerHTML = lines.map(([label, value]) => `
+        <div class="metric-line">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value)}</strong>
+        </div>
+      `).join("");
+    }
 
-  if(auth === 'success' && backendConfigured()){
-    await enterApp();
-    return;
-  }
+    function renderRecent() {
+      const recent = [
+        ...state.envelope.data.transactions.map((item) => ({ title: item.descricao || item.tipo, meta: `${item.tipo} · ${formatCurrency(item.valor)}`, createdAt: item.createdAt || item.data })),
+        ...state.envelope.data.metas.map((item) => ({ title: item.nome, meta: `Meta · ${item.status}`, createdAt: item.createdAt || item.prazo })),
+        ...state.envelope.data.dividas.map((item) => ({ title: item.nome, meta: `Dívida · ${item.status}`, createdAt: item.createdAt })),
+        ...state.envelope.data.erros.map((item) => ({ title: item.tipo, meta: `Erro · ${item.gravidade}`, createdAt: item.createdAt || item.data })),
+      ].sort((a, b) => Date.parse(b.createdAt || 0) - Date.parse(a.createdAt || 0)).slice(0, 5);
 
-  if(auth === 'error'){
-    toast(message || 'Nao foi possivel concluir o login com Google.');
-  }
+      refs.recentList.innerHTML = recent.length ? recent.map((item) => `
+        <div class="list-item">
+          <div class="item-top">
+            <span class="item-title">${escapeHtml(item.title)}</span>
+            <span class="tag">${escapeHtml(formatDate(item.createdAt))}</span>
+          </div>
+          <div class="item-meta">${escapeHtml(item.meta)}</div>
+        </div>
+      `).join("") : `<div class="empty-state">Ainda não há movimentação recente por aqui.</div>`;
+    }
 
-  if(backendConfigured()){
-    setDriveStatus(BACKEND_AUTH.authenticated ? 'Conta conectada. Clique em entrar para continuar.' : 'Clique em entrar para conectar o Drive.','idle');
-  }else if(clientOnlyMode()){
-    setDriveStatus(shouldRestoreDriveSession() ? 'Clique em entrar para renovar o Google Drive.' : 'Clique em entrar para conectar com Google.','idle');
-  }else{
-    setDriveStatus('Drive nao configurado','warn');
-  }
+    function renderTransactions() {
+      refs.transactionsList.innerHTML = state.envelope.data.transactions.length ? state.envelope.data.transactions.map((item) => `
+        <div class="list-item">
+          <div class="item-top">
+            <span class="item-title">${escapeHtml(item.descricao || item.tipo)}</span>
+            <div class="tag-row">
+              <span class="tag ${item.tipo === "Saída" ? "danger" : ""}">${escapeHtml(formatCurrency(item.valor))}</span>
+              <button class="secondary" type="button" data-remove="transactions" data-id="${escapeHtml(item.id)}">Remover</button>
+            </div>
+          </div>
+          <div class="item-meta">${escapeHtml(formatDate(item.data))} · ${escapeHtml(item.categoria || "Sem categoria")} · ${escapeHtml(item.pagamento || "Sem método")}</div>
+          <div class="item-meta">${escapeHtml(item.observacao || item.classificacao || "Sem observação adicional.")}</div>
+        </div>
+      `).join("") : `<div class="empty-state">Nenhuma transação cadastrada ainda.</div>`;
+    }
 
-  showLoginGate();
-  updateDriveControls();
-}
+    function renderGoals() {
+      refs.goalsList.innerHTML = state.envelope.data.metas.length ? state.envelope.data.metas.map((item) => {
+        const percentual = Math.min((Number(item.atual || 0) / Math.max(Number(item.alvo || 1), 1)) * 100, 100);
+        return `
+          <div class="list-item">
+            <div class="item-top">
+              <span class="item-title">${escapeHtml(item.nome)}</span>
+              <div class="tag-row">
+                <span class="tag">${escapeHtml(item.status)}</span>
+                <button class="secondary" type="button" data-remove="metas" data-id="${escapeHtml(item.id)}">Remover</button>
+              </div>
+            </div>
+            <div class="item-meta">Atual ${escapeHtml(formatCurrency(item.atual))} de ${escapeHtml(formatCurrency(item.alvo))}${item.prazo ? ` · até ${escapeHtml(formatDate(item.prazo))}` : ""}</div>
+            <div class="progress"><span style="width:${percentual}%;"></span></div>
+          </div>
+        `;
+      }).join("") : `<div class="empty-state">Cadastre uma meta para acompanhar sua evolução.</div>`;
+    }
 
-initializeUnifiedAuth();
-</script>
+    function renderDebts() {
+      refs.debtsList.innerHTML = state.envelope.data.dividas.length ? state.envelope.data.dividas.map((item) => {
+        const restante = Math.max(Number(item.valor_total || 0) - (Number(item.parcela || 0) * Number(item.pagas || 0)), 0);
+        const percentual = Number(item.total_parcelas || 0) > 0 ? Math.min((Number(item.pagas || 0) / Number(item.total_parcelas || 1)) * 100, 100) : 0;
+        return `
+          <div class="list-item">
+            <div class="item-top">
+              <span class="item-title">${escapeHtml(item.nome)}</span>
+              <div class="tag-row">
+                <span class="tag warn">${escapeHtml(item.prioridade || "Média")}</span>
+                <button class="secondary" type="button" data-remove="dividas" data-id="${escapeHtml(item.id)}">Remover</button>
+              </div>
+            </div>
+            <div class="item-meta">${escapeHtml(item.status)} · Restante ${escapeHtml(formatCurrency(restante))}</div>
+            <div class="progress"><span style="width:${percentual}%;"></span></div>
+          </div>
+        `;
+      }).join("") : `<div class="empty-state">Nenhuma dívida registrada.</div>`;
+    }
+
+    function renderReport(metrics) {
+      refs.reportList.innerHTML = [
+        ["Saldo líquido", formatCurrency(metrics.saldo)],
+        ["Entradas registradas", formatCurrency(metrics.entradas)],
+        ["Saídas registradas", formatCurrency(metrics.saidas)],
+        ["Dívida ainda em aberto", formatCurrency(metrics.dividaRestante)],
+        ["Score atual", `${metrics.score} / 100`],
+      ].map(([label, value]) => `
+        <div class="metric-line">
+          <span>${escapeHtml(label)}</span>
+          <strong>${escapeHtml(value)}</strong>
+        </div>
+      `).join("");
+
+      refs.categoryList.innerHTML = metrics.categorias.length ? metrics.categorias.map(([category, value]) => `
+        <div class="metric-line">
+          <span>${escapeHtml(category)}</span>
+          <strong>${escapeHtml(formatCurrency(value))}</strong>
+        </div>
+      `).join("") : `<div class="empty-state">As categorias aparecem aqui conforme você registra saídas.</div>`;
+    }
+
+    function renderScore(metrics) {
+      refs.scoreValue.textContent = String(metrics.score);
+      refs.scoreRing.style.setProperty("--score-angle", `${Math.round((metrics.score / 100) * 360)}deg`);
+      refs.insightsList.innerHTML = metrics.insights.map((item) => `
+        <div class="list-item">${escapeHtml(item)}</div>
+      `).join("");
+      refs.mistakesList.innerHTML = state.envelope.data.erros.length ? state.envelope.data.erros.map((item) => `
+        <div class="list-item">
+          <div class="item-top">
+            <span class="item-title">${escapeHtml(item.tipo)}</span>
+            <div class="tag-row">
+              <span class="tag danger">${escapeHtml(item.gravidade)}</span>
+              <button class="secondary" type="button" data-remove="erros" data-id="${escapeHtml(item.id)}">Remover</button>
+            </div>
+          </div>
+          <div class="item-meta">${escapeHtml(formatDate(item.data))} · ${escapeHtml(item.categoria || "Sem categoria")} · ${escapeHtml(item.reincidente || "Não")}</div>
+          <div class="item-meta">${escapeHtml(item.motivo || "Sem motivo registrado.")}</div>
+          <div class="item-meta">${escapeHtml(item.solucao || "Sem solução registrada.")}</div>
+        </div>
+      `).join("") : `<div class="empty-state">Registre erros financeiros para alimentar o score com mais contexto.</div>`;
+    }
+
+    function renderScreens() {
+      refs.screens.forEach((screen) => {
+        const active = screen.id === `screen-${state.screen}`;
+        screen.classList.toggle("hidden", !active);
+      });
+      refs.navButtons.forEach((button) => {
+        button.classList.toggle("is-active", button.dataset.screen === state.screen);
+      });
+    }
+
+    function updateCloudUi() {
+      const mode = currentCloudMode();
+      const backendConfigured = Boolean(state.backend?.configured);
+      const firebaseConfigured = Boolean(state.firebase.configured);
+      refs.syncButton.disabled = state.syncing || mode === "local";
+
+      if (state.syncing) {
+        refs.cloudStatus.textContent = "Sincronizando seus dados na nuvem...";
+      } else if (mode === "backend") {
+        refs.cloudStatus.textContent = "Backup em nuvem ativo no Google Drive.";
+      } else if (backendConfigured) {
+        refs.cloudStatus.textContent = "Sessão do Drive indisponível. Clique em entrar para reconectar.";
+      } else if (mode === "firebase") {
+        refs.cloudStatus.textContent = "Backup em nuvem ativo no Firebase.";
+      } else if (firebaseConfigured) {
+        refs.cloudStatus.textContent = "Entre para sincronizar seus dados no Firebase.";
+      } else {
+        refs.cloudStatus.textContent = "Modo local ativo. Entre para sincronizar seus dados.";
+      }
+
+      refs.connectButton.textContent = mode === "local" ? "Conectar" : "Sair";
+
+      if (mode === "backend") {
+        refs.userBadge.textContent = "Drive conectado";
+        refs.welcomeText.textContent = "Suas informações estão prontas para sincronizar com o Google Drive.";
+      } else if (mode === "firebase") {
+        refs.userBadge.textContent = state.firebase.user?.displayName || state.firebase.user?.email || "Firebase ativo";
+        refs.welcomeText.textContent = state.firebase.user?.email || "Sessão ativa no Firebase.";
+      } else {
+        refs.userBadge.textContent = "Modo local";
+        refs.welcomeText.textContent = "Organize entradas, saídas, metas, dívidas e score em um único painel.";
+      }
+
+      if (backendConfigured) {
+        refs.gateHint.textContent = "Clique em entrar para continuar com sua conta Google e o backup no Drive.";
+      } else if (firebaseConfigured) {
+        refs.gateHint.textContent = "Clique em entrar para continuar com sua conta Google no Firebase.";
+      } else {
+        refs.gateHint.textContent = "Clique em entrar para continuar no modo local.";
+      }
+    }
+
+    function render() {
+      const metrics = getMetrics();
+      renderSummary(metrics);
+      renderOverview(metrics);
+      renderRecent();
+      renderTransactions();
+      renderGoals();
+      renderDebts();
+      renderReport(metrics);
+      renderScore(metrics);
+      renderScreens();
+      updateCloudUi();
+      if (state.gateUnlocked) unlockApp();
+    }
+
+    async function handleEnter() {
+      if (state.backend?.configured) {
+        window.location.href = buildUrl("./api/auth/google/start");
+        return;
+      }
+
+      if (state.firebase.configured) {
+        try {
+          await window.SF_FIREBASE?.login?.();
+        } catch (error) {
+          showToast(String(error.message || error));
+        }
+        return;
+      }
+
+      unlockApp();
+      render();
+    }
+
+    async function handleLogout() {
+      try {
+        if (currentCloudMode() === "backend") {
+          await safeJsonRequest("./api/auth/logout", { method: "POST" });
+          await refreshBackendSession();
+        }
+        if (currentCloudMode() === "firebase") {
+          await window.SF_FIREBASE?.logout?.();
+        }
+      } finally {
+        state.firebase.user = null;
+        lockApp();
+        render();
+      }
+    }
+
+    function primeFormDefaults() {
+      refs.forms.transaction.elements.data.value = todayValue();
+      refs.forms.mistake.elements.data.value = todayValue();
+      refs.forms.debt.elements.pagas.value = "0";
+    }
+
+    function bindEvents() {
+      refs.enterButton.addEventListener("click", handleEnter);
+      refs.connectButton.addEventListener("click", () => {
+        if (currentCloudMode() === "local") handleEnter();
+        else handleLogout();
+      });
+      refs.syncButton.addEventListener("click", () => syncWithCloud());
+      refs.forms.transaction.addEventListener("submit", addTransaction);
+      refs.forms.goal.addEventListener("submit", addGoal);
+      refs.forms.debt.addEventListener("submit", addDebt);
+      refs.forms.mistake.addEventListener("submit", addMistake);
+      refs.navButtons.forEach((button) => {
+        button.addEventListener("click", () => {
+          state.screen = button.dataset.screen || DEFAULT_SCREEN;
+          renderScreens();
+        });
+      });
+
+      document.body.addEventListener("click", (event) => {
+        const button = event.target.closest("[data-remove]");
+        if (!button) return;
+        removeItem(button.dataset.remove, button.dataset.id);
+      });
+    }
+
+    async function bootstrap() {
+      bindEvents();
+      primeFormDefaults();
+      await refreshBackendSession();
+
+      const params = new URLSearchParams(window.location.search);
+      const authStatus = params.get("auth");
+      const authMessage = params.get("message");
+      if (authStatus === "success") showToast("Login concluído.");
+      if (authStatus === "error") showToast(authMessage ? decodeURIComponent(authMessage) : "Falha ao autenticar.");
+      if (authStatus) {
+        params.delete("auth");
+        params.delete("message");
+        const next = `${window.location.pathname}${params.toString() ? `?${params}` : ""}`;
+        window.history.replaceState({}, "", next);
+      }
+
+      if (state.backend?.authenticated) {
+        unlockApp();
+        const remote = await readBackendEnvelope();
+        if (remote.ok && remote.envelope) {
+          const remoteTime = Date.parse(remote.envelope.updatedAt || 0) || 0;
+          const localTime = Date.parse(state.envelope.updatedAt || 0) || 0;
+          if (remoteTime >= localTime || isEnvelopeEmpty(state.envelope)) {
+            adoptEnvelope(remote.envelope);
+          }
+        }
+      } else if (state.gateUnlocked) {
+        unlockApp();
+      }
+
+      render();
+    }
+
+    window.addEventListener("sf-firebase-ready", async () => {
+      const bridge = window.SF_FIREBASE || {};
+      state.firebase.ready = Boolean(bridge.ready);
+      state.firebase.configured = Boolean(bridge.configured);
+      updateCloudUi();
+
+      if (bridge.configured && typeof bridge.onAuthStateChanged === "function") {
+        bridge.onAuthStateChanged(bridge.auth, async (user) => {
+          state.firebase.user = user || null;
+          if (user) {
+            unlockApp();
+            const remoteEnvelope = await readFirebaseEnvelope();
+            if (remoteEnvelope) {
+              const remoteTime = Date.parse(remoteEnvelope.updatedAt || 0) || 0;
+              const localTime = Date.parse(state.envelope.updatedAt || 0) || 0;
+              if (remoteTime >= localTime || isEnvelopeEmpty(state.envelope)) {
+                adoptEnvelope(remoteEnvelope);
+              }
+            } else if (!isEnvelopeEmpty(state.envelope)) {
+              await writeFirebaseEnvelope();
+            }
+          }
+          render();
+        });
+      } else {
+        render();
+      }
+    });
+
+    bootstrap();
+  </script>
 </body>
 </html>

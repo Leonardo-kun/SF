@@ -4,3 +4,5 @@ Thumbs.db
 public/drive-config.js
 config/oauth.local.json
 data/
+.env
+.env.*

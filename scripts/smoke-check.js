@@ -44,16 +44,22 @@ async function main() {
 
   try {
     const root = await waitForServer(`http://localhost:${port}/`);
+    const health = await fetch(`http://localhost:${port}/health`, { cache: 'no-store' });
+    const driveConfig = await fetch(`http://localhost:${port}/drive-config.js`, { cache: 'no-store' });
     const configExample = await fetch(`http://localhost:${port}/drive-config.example.js`, { cache: 'no-store' });
     const authSession = await fetch(`http://localhost:${port}/api/auth/session`, { cache: 'no-store' });
 
     const rootText = await root.text();
+    const driveConfigText = await driveConfig.text();
     const authText = await authSession.text();
 
     assert(root.status === 200, `Falha ao abrir a raiz do app. Status: ${root.status}`);
+    assert(health.status === 200, `Falha ao abrir /health. Status: ${health.status}`);
+    assert(driveConfig.status === 200, `Falha ao abrir /drive-config.js. Status: ${driveConfig.status}`);
     assert(configExample.status === 200, `Falha ao abrir drive-config.example.js. Status: ${configExample.status}`);
     assert(authSession.status === 200, `Falha ao abrir /api/auth/session. Status: ${authSession.status}`);
     assert(rootText.includes('SF'), 'A pagina principal nao parece conter o app SF.');
+    assert(driveConfigText.includes('window.SF_DRIVE_CONFIG'), 'A rota /drive-config.js nao retornou a configuracao dinamica esperada.');
     assert(authText.includes('"configured"'), 'A rota /api/auth/session nao retornou o payload esperado.');
     assert(authText.includes('"redirectUri"'), 'A rota /api/auth/session nao retornou o redirectUri esperado.');
 

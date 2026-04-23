@@ -1,36 +1,42 @@
 #!/usr/bin/env node
 
-const http = require('node:http');
+const express = require('express');
 const fs = require('node:fs');
-const fsp = require('node:fs/promises');
 const path = require('node:path');
 const crypto = require('node:crypto');
 
 const projectRoot = path.resolve(__dirname, '..');
 const publicRoot = path.join(projectRoot, 'public');
-const configRoot = path.join(projectRoot, 'config');
-const dataRoot = path.join(projectRoot, 'data');
+const configRoot = resolveOptionalPath(process.env.SF_CONFIG_DIR, path.join(projectRoot, 'config'));
+const dataRoot = resolveOptionalPath(process.env.SF_DATA_DIR || process.env.DATA_ROOT, path.join(projectRoot, 'data'));
 const oauthConfigPath = path.join(configRoot, 'oauth.local.json');
 const publicDriveConfigPath = path.join(publicRoot, 'drive-config.js');
-const oauthStatePath = path.join(dataRoot, 'oauth-state.json');
-const oauthSessionPath = path.join(dataRoot, 'oauth-session.json');
 const debugLogPath = path.join(dataRoot, 'server-debug.log');
+const sessionsRoot = path.join(dataRoot, 'sessions');
 const defaultFile = 'index.html';
-const serverPort = parsePort(process.argv, process.env.PORT || '8080');
+const localPort = parsePort(process.argv, '8080');
+const PORT = Number.parseInt(String(process.env.PORT || ''), 10) || localPort;
+const SESSION_COOKIE_NAME = 'sf_session';
+const SESSION_SECRET = String(
+  process.env.SF_SESSION_SECRET ||
+  process.env.SESSION_SECRET ||
+  'sf-local-dev-only-change-me'
+);
 
 fs.mkdirSync(configRoot, { recursive: true });
 fs.mkdirSync(dataRoot, { recursive: true });
+fs.mkdirSync(sessionsRoot, { recursive: true });
 
-const contentTypes = new Map([
-  ['.html', 'text/html; charset=utf-8'],
-  ['.js', 'application/javascript; charset=utf-8'],
-  ['.json', 'application/json; charset=utf-8'],
-  ['.css', 'text/css; charset=utf-8'],
-  ['.svg', 'image/svg+xml'],
-  ['.png', 'image/png'],
-  ['.jpg', 'image/jpeg'],
-  ['.jpeg', 'image/jpeg'],
-]);
+const app = express();
+app.disable('x-powered-by');
+app.set('trust proxy', true);
+app.use(express.urlencoded({ extended: false, limit: '2mb' }));
+app.use(express.json({ limit: '2mb' }));
+
+function resolveOptionalPath(value, fallbackPath) {
+  if (!value) return fallbackPath;
+  return path.isAbsolute(value) ? value : path.resolve(projectRoot, value);
+}
 
 function parsePort(argv, fallback) {
   const args = [...argv];
@@ -46,6 +52,7 @@ function isoNow() {
 
 function ensureDataRoot() {
   fs.mkdirSync(dataRoot, { recursive: true });
+  fs.mkdirSync(sessionsRoot, { recursive: true });
 }
 
 function writeDebugLog(message) {
@@ -77,7 +84,144 @@ function removeFileIfExists(filePath) {
   }
 }
 
-function getPublicDriveConfig() {
+function sessionFilePath(sessionId) {
+  return path.join(sessionsRoot, `${sessionId}.json`);
+}
+
+function createEmptySessionData() {
+  const now = isoNow();
+  return {
+    createdAt: now,
+    updatedAt: now,
+    oauthState: null,
+    oauthSession: null,
+  };
+}
+
+function parseCookies(cookieHeader) {
+  const result = {};
+  if (!cookieHeader) return result;
+  for (const part of String(cookieHeader).split(';')) {
+    const [rawKey, ...rawValue] = part.trim().split('=');
+    if (!rawKey) continue;
+    result[rawKey] = decodeURIComponent(rawValue.join('=') || '');
+  }
+  return result;
+}
+
+function signSessionId(sessionId) {
+  return crypto.createHmac('sha256', SESSION_SECRET).update(sessionId).digest('base64url');
+}
+
+function encodeSessionCookie(sessionId) {
+  return `${sessionId}.${signSessionId(sessionId)}`;
+}
+
+function decodeSessionCookie(cookieValue) {
+  if (!cookieValue || !String(cookieValue).includes('.')) return null;
+  const value = String(cookieValue);
+  const separatorIndex = value.lastIndexOf('.');
+  const sessionId = value.slice(0, separatorIndex);
+  const providedSignature = value.slice(separatorIndex + 1);
+  if (!sessionId || !providedSignature) return null;
+
+  const expectedSignature = signSessionId(sessionId);
+  const providedBuffer = Buffer.from(providedSignature);
+  const expectedBuffer = Buffer.from(expectedSignature);
+  if (providedBuffer.length !== expectedBuffer.length) return null;
+  if (!crypto.timingSafeEqual(providedBuffer, expectedBuffer)) return null;
+  return sessionId;
+}
+
+function serializeCookie(name, value, options = {}) {
+  const parts = [`${name}=${encodeURIComponent(value)}`];
+  if (options.maxAge !== undefined) parts.push(`Max-Age=${options.maxAge}`);
+  parts.push(`Path=${options.path || '/'}`);
+  if (options.httpOnly !== false) parts.push('HttpOnly');
+  if (options.secure) parts.push('Secure');
+  if (options.sameSite) parts.push(`SameSite=${options.sameSite}`);
+  return parts.join('; ');
+}
+
+function setSessionCookie(req, res, sessionId) {
+  const secure = req.secure || String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim() === 'https';
+  res.setHeader('Set-Cookie', serializeCookie(SESSION_COOKIE_NAME, encodeSessionCookie(sessionId), {
+    path: '/',
+    httpOnly: true,
+    sameSite: 'Lax',
+    secure,
+    maxAge: 60 * 60 * 24 * 30,
+  }));
+}
+
+function readSessionDataById(sessionId) {
+  if (!sessionId) return null;
+  return readJsonFile(sessionFilePath(sessionId));
+}
+
+function writeSessionDataById(sessionId, data) {
+  const nextData = {
+    ...createEmptySessionData(),
+    ...data,
+    updatedAt: isoNow(),
+  };
+  writeJsonFile(sessionFilePath(sessionId), nextData);
+  return nextData;
+}
+
+function attachSession(req, res, next) {
+  try {
+    const cookies = parseCookies(req.headers.cookie);
+    const rawCookie = cookies[SESSION_COOKIE_NAME];
+    const sessionIdFromCookie = decodeSessionCookie(rawCookie);
+    let sessionId = sessionIdFromCookie;
+    let sessionData = sessionId ? readSessionDataById(sessionId) : null;
+
+    if (!sessionId || !sessionData) {
+      sessionId = crypto.randomBytes(24).toString('base64url');
+      sessionData = writeSessionDataById(sessionId, createEmptySessionData());
+      setSessionCookie(req, res, sessionId);
+    }
+
+    req.sfSession = {
+      id: sessionId,
+      data: sessionData,
+    };
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+}
+
+function persistRequestSession(req) {
+  req.sfSession.data = writeSessionDataById(req.sfSession.id, req.sfSession.data);
+}
+
+function testClientId(clientId) {
+  return Boolean(
+    clientId &&
+      clientId.endsWith('.apps.googleusercontent.com') &&
+      !clientId.includes('COLOQUE') &&
+      !clientId.includes('SEU_CLIENT_ID')
+  );
+}
+
+function testClientSecret(clientSecret) {
+  return Boolean(
+    clientSecret &&
+      !clientSecret.includes('COLOQUE') &&
+      !clientSecret.includes('SEU_CLIENT_SECRET')
+  );
+}
+
+function normalizeBoolean(value, fallback) {
+  if (typeof value === 'boolean') return value;
+  if (value === undefined || value === null || value === '') return fallback;
+  return String(value).toLowerCase() === 'true';
+}
+
+function readPublicDriveConfigFile() {
   const defaults = {
     clientId: '',
     fileName: 'sf-data.json',
@@ -109,56 +253,84 @@ function getPublicDriveConfig() {
   return defaults;
 }
 
-function testClientId(clientId) {
-  return Boolean(
-    clientId &&
-    clientId.endsWith('.apps.googleusercontent.com') &&
-    !clientId.includes('COLOQUE') &&
-    !clientId.includes('SEU_CLIENT_ID')
-  );
+function parseEnvList(value) {
+  if (!value) return null;
+  return String(value)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
-function testClientSecret(clientSecret) {
-  return Boolean(
-    clientSecret &&
-    !clientSecret.includes('COLOQUE') &&
-    !clientSecret.includes('SEU_CLIENT_SECRET')
-  );
-}
+function getPublicDriveConfig() {
+  const fileConfig = readPublicDriveConfigFile();
+  const envLegacyNames = parseEnvList(process.env.DRIVE_LEGACY_FILE_NAMES);
 
-function normalizeBoolean(value, fallback) {
-  if (typeof value === 'boolean') return value;
-  if (value === undefined || value === null || value === '') return fallback;
-  return String(value).toLowerCase() === 'true';
+  return {
+    clientId: String(process.env.GOOGLE_CLIENT_ID || process.env.CLIENT_ID || fileConfig.clientId || '').trim(),
+    fileName: String(process.env.DRIVE_FILE_NAME || fileConfig.fileName || 'sf-data.json').trim() || 'sf-data.json',
+    legacyFileNames: envLegacyNames?.length ? envLegacyNames : fileConfig.legacyFileNames,
+    useAppDataFolder: normalizeBoolean(process.env.DRIVE_USE_APP_DATA_FOLDER, fileConfig.useAppDataFolder),
+    autoSync: normalizeBoolean(process.env.DRIVE_AUTO_SYNC, fileConfig.autoSync),
+  };
 }
 
 function getRequestBaseUrl(req) {
   const forwardedProto = String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim();
   const forwardedHost = String(req.headers['x-forwarded-host'] || '').split(',')[0].trim();
-  const protocol = forwardedProto || (req.socket.encrypted ? 'https' : 'http');
-  const host = forwardedHost || req.headers.host || `localhost:${serverPort}`;
+  const protocol = forwardedProto || req.protocol || (req.secure ? 'https' : 'http');
+  const host = forwardedHost || req.get('host') || `localhost:${PORT}`;
   return `${protocol}://${host}`;
 }
 
 function getDriveServerConfig(req) {
   const publicConfig = getPublicDriveConfig();
   const oauthConfig = readJsonFile(oauthConfigPath) || {};
-  const clientId = String(oauthConfig.clientId || publicConfig.clientId || '').trim();
-  const clientSecret = String(oauthConfig.clientSecret || '').trim();
-  const fileName = String(oauthConfig.fileName || publicConfig.fileName || 'sf-data.json').trim() || 'sf-data.json';
-  const legacyFileNames = Array.isArray(oauthConfig.legacyFileNames)
-    ? oauthConfig.legacyFileNames.map((value) => String(value || '').trim()).filter(Boolean)
-    : publicConfig.legacyFileNames;
+  const envLegacyNames = parseEnvList(process.env.DRIVE_LEGACY_FILE_NAMES);
+
+  const clientId = String(
+    process.env.GOOGLE_CLIENT_ID ||
+      process.env.CLIENT_ID ||
+      oauthConfig.clientId ||
+      publicConfig.clientId ||
+      ''
+  ).trim();
+  const clientSecret = String(
+    process.env.GOOGLE_CLIENT_SECRET ||
+      process.env.CLIENT_SECRET ||
+      oauthConfig.clientSecret ||
+      ''
+  ).trim();
+  const fileName = String(
+    process.env.DRIVE_FILE_NAME ||
+      oauthConfig.fileName ||
+      publicConfig.fileName ||
+      'sf-data.json'
+  ).trim() || 'sf-data.json';
+  const legacyFileNamesSource = envLegacyNames?.length
+    ? envLegacyNames
+    : Array.isArray(oauthConfig.legacyFileNames)
+      ? oauthConfig.legacyFileNames
+      : publicConfig.legacyFileNames;
+  const legacyFileNames = legacyFileNamesSource
+    .map((value) => String(value || '').trim())
+    .filter(Boolean);
   const useAppDataFolder = normalizeBoolean(
-    oauthConfig.useAppDataFolder,
-    normalizeBoolean(publicConfig.useAppDataFolder, true)
+    process.env.DRIVE_USE_APP_DATA_FOLDER,
+    normalizeBoolean(
+      oauthConfig.useAppDataFolder,
+      normalizeBoolean(publicConfig.useAppDataFolder, true)
+    )
   );
-  const baseUrl = req
-    ? getRequestBaseUrl(req)
-    : String(oauthConfig.baseUrl || '').trim().replace(/\/+$/, '') || `http://localhost:${serverPort}`;
   const scope = useAppDataFolder
     ? 'https://www.googleapis.com/auth/drive.appdata'
     : 'https://www.googleapis.com/auth/drive.file';
+  const configuredBaseUrl = String(
+    process.env.APP_BASE_URL ||
+      process.env.BASE_URL ||
+      oauthConfig.baseUrl ||
+      ''
+  ).trim().replace(/\/+$/, '');
+  const baseUrl = configuredBaseUrl || getRequestBaseUrl(req);
 
   return {
     configured: testClientId(clientId) && testClientSecret(clientSecret),
@@ -167,37 +339,42 @@ function getDriveServerConfig(req) {
     fileName,
     legacyFileNames: legacyFileNames.length ? legacyFileNames : ['financeos-data.json'],
     useAppDataFolder,
+    autoSync: publicConfig.autoSync,
     scope,
     baseUrl,
     redirectUri: `${baseUrl}/api/auth/google/callback`,
   };
 }
 
-function readOauthSession() {
-  return readJsonFile(oauthSessionPath);
+function readOauthSession(req) {
+  return req.sfSession?.data?.oauthSession || null;
 }
 
-function saveOauthSession(session) {
-  writeJsonFile(oauthSessionPath, session);
+function saveOauthSession(req, session) {
+  req.sfSession.data.oauthSession = session;
+  persistRequestSession(req);
 }
 
-function clearOauthSession() {
-  removeFileIfExists(oauthSessionPath);
+function clearOauthSession(req) {
+  req.sfSession.data.oauthSession = null;
+  persistRequestSession(req);
 }
 
-function readOauthState() {
-  return readJsonFile(oauthStatePath);
+function readOauthState(req) {
+  return req.sfSession?.data?.oauthState || null;
 }
 
-function saveOauthState(state) {
-  writeJsonFile(oauthStatePath, {
+function saveOauthState(req, state) {
+  req.sfSession.data.oauthState = {
     value: state,
     createdAt: isoNow(),
-  });
+  };
+  persistRequestSession(req);
 }
 
-function clearOauthState() {
-  removeFileIfExists(oauthStatePath);
+function clearOauthState(req) {
+  req.sfSession.data.oauthState = null;
+  persistRequestSession(req);
 }
 
 function newRandomToken() {
@@ -224,14 +401,6 @@ function buildDriveSearchUrl(config, fileName) {
     url.searchParams.set('q', baseQuery);
   }
   return url.toString();
-}
-
-async function readRequestBody(req) {
-  const chunks = [];
-  for await (const chunk of req) {
-    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-  }
-  return Buffer.concat(chunks).toString('utf8');
 }
 
 async function decodeJsonResponse(response) {
@@ -306,21 +475,20 @@ async function refreshGoogleAccessToken(config, refreshToken) {
   });
 }
 
-function testOauthAuthenticated(config) {
+function testOauthAuthenticated(req, config) {
   if (!config.configured) return false;
-  const session = readOauthSession();
+  const session = readOauthSession(req);
   return Boolean(session?.refresh_token);
 }
 
-async function getValidAccessToken(config) {
-  const session = readOauthSession();
+async function getValidAccessToken(req, config) {
+  const session = readOauthSession(req);
   if (!session?.refresh_token) {
     throw new Error('Nenhuma sessao OAuth ativa para o Drive.');
   }
 
   const expiresAt = session.expires_at ? Date.parse(session.expires_at) : 0;
-  const now = Date.now();
-  if (session.access_token && Number.isFinite(expiresAt) && expiresAt > now + 60_000) {
+  if (session.access_token && Number.isFinite(expiresAt) && expiresAt > Date.now() + 60_000) {
     return String(session.access_token);
   }
 
@@ -329,12 +497,12 @@ async function getValidAccessToken(config) {
     session.access_token = String(refreshed.access_token || '');
     session.expires_at = new Date(Date.now() + (Number(refreshed.expires_in || 3600) - 60) * 1000).toISOString();
     session.updated_at = isoNow();
-    saveOauthSession(session);
+    saveOauthSession(req, session);
     return String(session.access_token);
   } catch (error) {
     const message = String(error.message || error);
     if (message.toLowerCase().includes('invalid_grant')) {
-      clearOauthSession();
+      clearOauthSession(req);
     } else if (session.access_token) {
       writeDebugLog(`Falha ao renovar o token do Drive; reutilizando o token atual. Motivo: ${message}`);
       return String(session.access_token);
@@ -345,11 +513,7 @@ async function getValidAccessToken(config) {
 
 function testDriveNotFoundError(error) {
   const message = String(error?.message || error || '').toLowerCase();
-  return (
-    message.includes('file not found') ||
-    message.includes('notfound') ||
-    message.includes('404')
-  );
+  return message.includes('file not found') || message.includes('notfound') || message.includes('404');
 }
 
 async function getDriveFileById(accessToken, fileId) {
@@ -452,8 +616,8 @@ async function updateDriveFile(accessToken, fileId, envelopeJson) {
   );
 }
 
-async function getOrFindDriveFile(config, accessToken) {
-  const session = readOauthSession();
+async function getOrFindDriveFile(req, config, accessToken) {
+  const session = readOauthSession(req);
   let file = null;
   if (session?.file_id) {
     file = await getDriveFileById(accessToken, String(session.file_id));
@@ -464,20 +628,20 @@ async function getOrFindDriveFile(config, accessToken) {
   return file;
 }
 
-function saveDriveFileId(fileId) {
-  const session = readOauthSession();
+function saveDriveFileId(req, fileId) {
+  const session = readOauthSession(req);
   if (!session) return;
   session.file_id = fileId;
   session.updated_at = isoNow();
-  saveOauthSession(session);
+  saveOauthSession(req, session);
 }
 
 function getAuthSessionPayload(req) {
   const config = getDriveServerConfig(req);
-  const session = readOauthSession();
+  const session = readOauthSession(req);
   return {
     configured: Boolean(config.configured),
-    authenticated: Boolean(testOauthAuthenticated(config)),
+    authenticated: Boolean(testOauthAuthenticated(req, config)),
     fileName: config.fileName,
     useAppDataFolder: Boolean(config.useAppDataFolder),
     fileId: session?.file_id ? String(session.file_id) : '',
@@ -486,44 +650,51 @@ function getAuthSessionPayload(req) {
   };
 }
 
-function sendResponse(req, res, statusCode, headers, bodyBuffer = Buffer.alloc(0)) {
-  const finalHeaders = {
-    'Cache-Control': 'no-store',
-    'Content-Length': bodyBuffer.length,
-    ...headers,
+function buildDriveConfigScript(req) {
+  const config = getDriveServerConfig(req);
+  const payload = {
+    clientId: config.clientId,
+    fileName: config.fileName,
+    legacyFileNames: config.legacyFileNames,
+    autoSync: config.autoSync,
+    useAppDataFolder: config.useAppDataFolder,
   };
-  res.writeHead(statusCode, finalHeaders);
-  if (req.method === 'HEAD') {
-    res.end();
-    return;
-  }
-  res.end(bodyBuffer);
+
+  return [
+    `window.SF_DRIVE_CONFIG = ${JSON.stringify(payload, null, 2)};`,
+    'window.FINANCEOS_DRIVE_CONFIG = window.SF_DRIVE_CONFIG;',
+    '',
+  ].join('\n');
 }
 
-function sendJson(req, res, statusCode, payload) {
-  const body = Buffer.from(JSON.stringify(payload), 'utf8');
-  sendResponse(req, res, statusCode, { 'Content-Type': 'application/json; charset=utf-8' }, body);
-}
+app.use((req, res, next) => {
+  res.setHeader('Cache-Control', 'no-store');
+  next();
+});
 
-function sendText(req, res, statusCode, text, contentType = 'text/plain; charset=utf-8') {
-  const body = Buffer.from(text, 'utf8');
-  sendResponse(req, res, statusCode, { 'Content-Type': contentType }, body);
-}
+app.use('/api', attachSession);
 
-function sendRedirect(req, res, location) {
-  const body = Buffer.from('Redirecting...', 'utf8');
-  sendResponse(req, res, 302, { Location: location, 'Content-Type': 'text/plain; charset=utf-8' }, body);
-}
+app.get('/health', (_req, res) => {
+  res.status(200).json({ ok: true, service: 'sf', runtime: 'express' });
+});
 
-async function handleAuthStart(req, res) {
+app.get('/drive-config.js', (req, res) => {
+  res.type('application/javascript; charset=utf-8').send(buildDriveConfigScript(req));
+});
+
+app.get('/api/auth/session', (req, res) => {
+  res.status(200).json(getAuthSessionPayload(req));
+});
+
+app.get('/api/auth/google/start', async (req, res) => {
   const config = getDriveServerConfig(req);
   if (!config.configured) {
-    sendJson(req, res, 500, { error: 'OAuth do servidor ainda nao foi configurado. Preencha config/oauth.local.json.' });
+    res.status(500).json({ error: 'OAuth do servidor ainda nao foi configurado. Preencha as variaveis do ambiente ou config/oauth.local.json.' });
     return;
   }
 
   const state = newRandomToken();
-  saveOauthState(state);
+  saveOauthState(req, state);
 
   const authUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
   authUrl.searchParams.set('client_id', config.clientId);
@@ -535,24 +706,23 @@ async function handleAuthStart(req, res) {
   authUrl.searchParams.set('prompt', 'consent');
   authUrl.searchParams.set('state', state);
 
-  sendRedirect(req, res, authUrl.toString());
-}
+  res.redirect(authUrl.toString());
+});
 
-async function handleAuthCallback(req, res, requestUrl) {
+app.get('/api/auth/google/callback', async (req, res) => {
   const config = getDriveServerConfig(req);
   if (!config.configured) {
-    sendRedirect(req, res, '/?auth=error&message=oauth-config-missing');
+    res.redirect('/?auth=error&message=oauth-config-missing');
     return;
   }
 
-  const authError = requestUrl.searchParams.get('error');
-  if (authError) {
-    sendRedirect(req, res, `/?auth=error&message=${encodeURIComponent(authError)}`);
+  if (req.query.error) {
+    res.redirect(`/?auth=error&message=${encodeURIComponent(String(req.query.error))}`);
     return;
   }
 
-  const savedState = readOauthState();
-  const receivedState = requestUrl.searchParams.get('state') || '';
+  const savedState = readOauthState(req);
+  const receivedState = String(req.query.state || '');
   const stateCreatedAt = savedState?.createdAt ? Date.parse(savedState.createdAt) : 0;
   const stateValid =
     Boolean(savedState?.value) &&
@@ -561,28 +731,28 @@ async function handleAuthCallback(req, res, requestUrl) {
     stateCreatedAt + 15 * 60_000 >= Date.now();
 
   if (!stateValid) {
-    clearOauthState();
-    sendRedirect(req, res, '/?auth=error&message=state-invalid');
+    clearOauthState(req);
+    res.redirect('/?auth=error&message=state-invalid');
     return;
   }
 
-  const code = requestUrl.searchParams.get('code');
+  const code = String(req.query.code || '');
   if (!code) {
-    clearOauthState();
-    sendRedirect(req, res, '/?auth=error&message=missing-code');
+    clearOauthState(req);
+    res.redirect('/?auth=error&message=missing-code');
     return;
   }
 
   try {
     const tokens = await exchangeGoogleAuthCode(config, code);
-    const existingSession = readOauthSession();
+    const existingSession = readOauthSession(req);
     const refreshToken = tokens.refresh_token || existingSession?.refresh_token || '';
 
     if (!refreshToken) {
       throw new Error('Google nao retornou refresh token. Revise o consentimento e o access_type=offline.');
     }
 
-    saveOauthSession({
+    saveOauthSession(req, {
       refresh_token: String(refreshToken),
       access_token: String(tokens.access_token || ''),
       expires_at: new Date(Date.now() + (Number(tokens.expires_in || 3600) - 60) * 1000).toISOString(),
@@ -591,86 +761,85 @@ async function handleAuthCallback(req, res, requestUrl) {
       updated_at: isoNow(),
     });
 
-    clearOauthState();
-    sendRedirect(req, res, '/?auth=success');
+    clearOauthState(req);
+    res.redirect('/?auth=success');
   } catch (error) {
-    clearOauthState();
+    clearOauthState(req);
     writeDebugLog(`Falha no callback OAuth: ${error.message}`);
-    sendRedirect(req, res, `/?auth=error&message=${encodeURIComponent(String(error.message || error))}`);
+    res.redirect(`/?auth=error&message=${encodeURIComponent(String(error.message || error))}`);
   }
-}
+});
 
-async function handleAuthLogout(req, res) {
-  clearOauthSession();
-  clearOauthState();
-  sendJson(req, res, 200, { ok: true });
-}
+app.post('/api/auth/logout', (req, res) => {
+  clearOauthSession(req);
+  clearOauthState(req);
+  res.status(200).json({ ok: true });
+});
 
-async function handleDriveEnvelopeGet(req, res) {
+app.get('/api/drive/envelope', async (req, res) => {
   const config = getDriveServerConfig(req);
-  if (!testOauthAuthenticated(config)) {
-    sendJson(req, res, 401, { error: 'Nao autenticado no Google Drive.' });
+  if (!testOauthAuthenticated(req, config)) {
+    res.status(401).json({ error: 'Nao autenticado no Google Drive.' });
     return;
   }
 
   try {
-    const accessToken = await getValidAccessToken(config);
-    const file = await getOrFindDriveFile(config, accessToken);
+    const accessToken = await getValidAccessToken(req, config);
+    const file = await getOrFindDriveFile(req, config, accessToken);
 
     if (!file?.id) {
-      sendJson(req, res, 200, { fileId: '', envelope: null });
+      res.status(200).json({ fileId: '', envelope: null });
       return;
     }
 
-    saveDriveFileId(String(file.id));
+    saveDriveFileId(req, String(file.id));
 
     try {
       const envelope = await fetchDriveEnvelope(accessToken, String(file.id));
-      sendJson(req, res, 200, { fileId: String(file.id), envelope });
+      res.status(200).json({ fileId: String(file.id), envelope });
     } catch (error) {
       if (testDriveNotFoundError(error)) {
-        saveDriveFileId('');
-        sendJson(req, res, 200, { fileId: '', envelope: null });
+        saveDriveFileId(req, '');
+        res.status(200).json({ fileId: '', envelope: null });
         return;
       }
       throw error;
     }
   } catch (error) {
     writeDebugLog(`Drive envelope GET falhou: ${error.message}`);
-    sendJson(req, res, 500, { error: String(error.message || error) });
+    res.status(500).json({ error: String(error.message || error) });
   }
-}
+});
 
-async function handleDriveEnvelopeSave(req, res, requestBody) {
+app.post('/api/drive/envelope', async (req, res) => {
   const config = getDriveServerConfig(req);
-  if (!testOauthAuthenticated(config)) {
-    sendJson(req, res, 401, { error: 'Nao autenticado no Google Drive.' });
+  if (!testOauthAuthenticated(req, config)) {
+    res.status(401).json({ error: 'Nao autenticado no Google Drive.' });
     return;
   }
 
-  const params = new URLSearchParams(requestBody);
-  const payload = params.get('payload');
-  if (!payload || !payload.trim()) {
-    sendJson(req, res, 400, { error: 'Payload ausente.' });
+  const payload = typeof req.body?.payload === 'string' ? req.body.payload : '';
+  if (!payload.trim()) {
+    res.status(400).json({ error: 'Payload ausente.' });
     return;
   }
 
   try {
     JSON.parse(payload);
   } catch {
-    sendJson(req, res, 400, { error: 'Payload JSON invalido.' });
+    res.status(400).json({ error: 'Payload JSON invalido.' });
     return;
   }
 
   try {
-    const accessToken = await getValidAccessToken(config);
-    const file = await getOrFindDriveFile(config, accessToken);
+    const accessToken = await getValidAccessToken(req, config);
+    const file = await getOrFindDriveFile(req, config, accessToken);
 
     if (!file?.id) {
       const created = await createDriveFile(config, accessToken, payload);
       const createdId = String(created.id || '');
-      saveDriveFileId(createdId);
-      sendJson(req, res, 200, { fileId: createdId, status: 'created' });
+      saveDriveFileId(req, createdId);
+      res.status(200).json({ fileId: createdId, status: 'created' });
       return;
     }
 
@@ -679,118 +848,57 @@ async function handleDriveEnvelopeSave(req, res, requestBody) {
     try {
       const updated = await updateDriveFile(accessToken, String(preferredFile.id), payload);
       const fileId = String(updated.id || preferredFile.id || '');
-      saveDriveFileId(fileId);
-      sendJson(req, res, 200, { fileId, status: 'updated' });
+      saveDriveFileId(req, fileId);
+      res.status(200).json({ fileId, status: 'updated' });
     } catch (error) {
       if (!testDriveNotFoundError(error)) {
         throw error;
       }
 
-      saveDriveFileId('');
+      saveDriveFileId(req, '');
       const created = await createDriveFile(config, accessToken, payload);
       const createdId = String(created.id || '');
-      saveDriveFileId(createdId);
-      sendJson(req, res, 200, { fileId: createdId, status: 'created' });
+      saveDriveFileId(req, createdId);
+      res.status(200).json({ fileId: createdId, status: 'created' });
     }
   } catch (error) {
     writeDebugLog(`Drive envelope SAVE falhou: ${error.message}`);
-    sendJson(req, res, 500, { error: String(error.message || error) });
-  }
-}
-
-function resolveStaticPath(requestUrl) {
-  const pathname = decodeURIComponent(requestUrl.pathname);
-  const relativePath = pathname === '/' ? defaultFile : pathname.replace(/^\/+/, '');
-  const fullPath = path.resolve(publicRoot, relativePath);
-  const publicBase = path.resolve(publicRoot);
-  if (fullPath !== publicBase && !fullPath.startsWith(`${publicBase}${path.sep}`)) {
-    return null;
-  }
-  return fullPath;
-}
-
-async function handleStaticFile(req, res, requestUrl) {
-  if (!['GET', 'HEAD'].includes(req.method)) {
-    sendText(req, res, 405, 'Metodo nao suportado para arquivos estaticos.');
-    return;
-  }
-
-  const fullPath = resolveStaticPath(requestUrl);
-  if (!fullPath) {
-    sendText(req, res, 404, 'Arquivo nao encontrado.');
-    return;
-  }
-
-  try {
-    const stats = await fsp.stat(fullPath);
-    if (!stats.isFile()) {
-      sendText(req, res, 404, 'Arquivo nao encontrado.');
-      return;
-    }
-
-    const body = await fsp.readFile(fullPath);
-    const ext = path.extname(fullPath).toLowerCase();
-    const contentType = contentTypes.get(ext) || 'application/octet-stream';
-    sendResponse(req, res, 200, { 'Content-Type': contentType }, body);
-  } catch {
-    sendText(req, res, 404, 'Arquivo nao encontrado.');
-  }
-}
-
-async function handleApiRequest(req, res, requestUrl, requestBody) {
-  const routeKey = `${req.method} ${requestUrl.pathname}`;
-  switch (routeKey) {
-    case 'GET /api/auth/session':
-    case 'HEAD /api/auth/session':
-      sendJson(req, res, 200, getAuthSessionPayload(req));
-      return;
-    case 'GET /api/auth/google/start':
-    case 'HEAD /api/auth/google/start':
-      await handleAuthStart(req, res);
-      return;
-    case 'GET /api/auth/google/callback':
-    case 'HEAD /api/auth/google/callback':
-      await handleAuthCallback(req, res, requestUrl);
-      return;
-    case 'POST /api/auth/logout':
-      await handleAuthLogout(req, res);
-      return;
-    case 'GET /api/drive/envelope':
-    case 'HEAD /api/drive/envelope':
-      await handleDriveEnvelopeGet(req, res);
-      return;
-    case 'POST /api/drive/envelope':
-      await handleDriveEnvelopeSave(req, res, requestBody);
-      return;
-    default:
-      sendJson(req, res, 404, { error: 'Rota API nao encontrada.' });
-  }
-}
-
-const server = http.createServer(async (req, res) => {
-  try {
-    const requestUrl = new URL(req.url || '/', `http://${req.headers.host || `localhost:${serverPort}`}`);
-    if (!['GET', 'HEAD', 'POST'].includes(req.method || '')) {
-      sendText(req, res, 405, 'Metodo nao suportado.');
-      return;
-    }
-
-    const requestBody = req.method === 'POST' ? await readRequestBody(req) : '';
-    if (requestUrl.pathname.startsWith('/api/')) {
-      await handleApiRequest(req, res, requestUrl, requestBody);
-      return;
-    }
-
-    await handleStaticFile(req, res, requestUrl);
-  } catch (error) {
-    writeDebugLog(`Loop principal falhou: ${error.message}`);
-    sendText(req, res, 500, String(error.message || error));
+    res.status(500).json({ error: String(error.message || error) });
   }
 });
 
-server.listen(serverPort, '127.0.0.1', () => {
-  console.log(`SF em http://localhost:${serverPort}`);
+app.use(express.static(publicRoot, {
+  index: false,
+  setHeaders(res) {
+    res.setHeader('Cache-Control', 'no-store');
+  },
+}));
+
+app.get('/', (_req, res) => {
+  res.sendFile(path.join(publicRoot, defaultFile));
+});
+
+app.use((req, res) => {
+  if (req.path.startsWith('/api/')) {
+    res.status(404).json({ error: 'Rota API nao encontrada.' });
+    return;
+  }
+  res.status(404).type('text/plain; charset=utf-8').send('Arquivo nao encontrado.');
+});
+
+app.use((error, req, res, _next) => {
+  writeDebugLog(`Loop principal falhou: ${error.message}`);
+  if (req.path.startsWith('/api/')) {
+    res.status(500).json({ error: String(error.message || error) });
+    return;
+  }
+  res.status(500).type('text/plain; charset=utf-8').send(String(error.message || error));
+});
+
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`SF em http://localhost:${PORT}`);
   console.log(`Pasta servida: ${publicRoot}`);
   console.log(`Config do OAuth: ${oauthConfigPath}`);
+  console.log(`Dados do OAuth: ${dataRoot}`);
   console.log('Pressione Ctrl+C para encerrar.');
 });

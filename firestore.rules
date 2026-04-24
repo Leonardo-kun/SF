@@ -2,9 +2,215 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    match /users/{userId} {
-      allow read, write: if request.auth != null && request.auth.uid == userId;
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId} (must match request.auth.uid)
+    // Fields:
+    //   - name: string (optional, max 120)
+    //   - email: string (optional, max 254, private)
+    //   - envelope: map (required)
+    //     - version: number (required, 1..10)
+    //     - updatedAt: string ISO-8601 (required)
+    //     - data: map (required)
+    //       - transactions: list (required, max 5000)
+    //       - metas: list (required, max 500)
+    //       - dividas: list (required, max 1000)
+    //       - erros: list (required, max 1000)
+    //       - settings: map (required)
+    //         - salarioMensal: number (required, >= 0)
+    //         - outrasRendas: number (required, >= 0)
+    //         - beneficios: map (required)
+    //           - valeAlimentacao: number (required, >= 0)
+    //           - valeTransporte: number (required, >= 0)
+    //           - planoSaude: number (required, >= 0)
+    //           - outrosBeneficios: number (required, >= 0)
+    //         - updatedAt: string ISO-8601 (required)
+    //   - updatedAt: string ISO-8601 (required)
+    //
+    // Collection: users/{userId}/monthly_snapshots
+    // Document ID: {monthId} in YYYY-MM
+    // Fields:
+    //   - userId: string (required, immutable, must match owner)
+    //   - month: string (required, immutable, must match document id)
+    //   - income: number (required, >= 0)
+    //   - totalGastos: number (required, >= 0)
+    //   - totalDividas: number (required, >= 0)
+    //   - comprometimento: number (required, >= 0)
+    //   - status: string (required, "open" | "closed")
+    //   - source: string (required, "client")
+    //   - closedAt: string (required, ISO when closed, empty when open)
+    //   - createdAt: string ISO-8601 (required, immutable)
+    //   - updatedAt: string ISO-8601 (required)
+    //
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function hasOnlyAllowedFields(data, fields) {
+      return data.keys().hasOnly(fields);
+    }
+
+    function hasRequiredFields(data, fields) {
+      return data.keys().hasAll(fields);
+    }
+
+    function isValidOptionalString(value, maxLen) {
+      return value == null || (value is string && value.size() <= maxLen);
+    }
+
+    function isValidEmail(value) {
+      return value is string &&
+        value.size() <= 254 &&
+        value.matches("^[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$");
+    }
+
+    function isValidIsoDateString(value) {
+      return value is string &&
+        value.size() >= 20 &&
+        value.size() <= 40 &&
+        value.matches("^\\d{4}-\\d{2}-\\d{2}T.*Z$");
+    }
+
+    function isValidMonthId(value) {
+      return value is string && value.matches("^\\d{4}-\\d{2}$");
+    }
+
+    function isNonNegativeNumber(value, maxValue) {
+      return value is number && value >= 0 && value <= maxValue;
+    }
+
+    function isValidSnapshotStatus(value) {
+      return value is string && (value == "open" || value == "closed");
+    }
+
+    function isValidSnapshotSource(value) {
+      return value is string && value == "client";
+    }
+
+    function isValidSnapshotClosedAt(value, status) {
+      return (status == "closed" && isValidIsoDateString(value)) ||
+        (status == "open" && value is string && value == "");
+    }
+
+    function isClientSnapshot(data) {
+      return data.source == "client";
+    }
+
+    function isValidBenefits(data) {
+      return data is map &&
+        hasOnlyAllowedFields(data, ["valeAlimentacao", "valeTransporte", "planoSaude", "outrosBeneficios"]) &&
+        hasRequiredFields(data, ["valeAlimentacao", "valeTransporte", "planoSaude", "outrosBeneficios"]) &&
+        isNonNegativeNumber(data.valeAlimentacao, 100000000) &&
+        isNonNegativeNumber(data.valeTransporte, 100000000) &&
+        isNonNegativeNumber(data.planoSaude, 100000000) &&
+        isNonNegativeNumber(data.outrosBeneficios, 100000000);
+    }
+
+    function isValidSettings(data) {
+      return data is map &&
+        hasOnlyAllowedFields(data, ["salarioMensal", "outrasRendas", "beneficios", "updatedAt"]) &&
+        hasRequiredFields(data, ["salarioMensal", "outrasRendas", "beneficios", "updatedAt"]) &&
+        isNonNegativeNumber(data.salarioMensal, 100000000) &&
+        isNonNegativeNumber(data.outrasRendas, 100000000) &&
+        isValidBenefits(data.beneficios) &&
+        isValidIsoDateString(data.updatedAt);
+    }
+
+    function isValidEnvelopeData(data) {
+      return data is map &&
+        hasOnlyAllowedFields(data, ["transactions", "metas", "dividas", "erros", "settings"]) &&
+        hasRequiredFields(data, ["transactions", "metas", "dividas", "erros", "settings"]) &&
+        data.transactions is list &&
+        data.transactions.size() <= 5000 &&
+        data.metas is list &&
+        data.metas.size() <= 500 &&
+        data.dividas is list &&
+        data.dividas.size() <= 1000 &&
+        data.erros is list &&
+        data.erros.size() <= 1000 &&
+        isValidSettings(data.settings);
+    }
+
+    function isValidEnvelope(data) {
+      return data is map &&
+        hasOnlyAllowedFields(data, ["version", "updatedAt", "data"]) &&
+        hasRequiredFields(data, ["version", "updatedAt", "data"]) &&
+        data.version is number &&
+        data.version >= 1 &&
+        data.version <= 10 &&
+        isValidIsoDateString(data.updatedAt) &&
+        isValidEnvelopeData(data.data);
+    }
+
+    function isValidUserDoc(data) {
+      return data is map &&
+        hasOnlyAllowedFields(data, ["name", "email", "envelope", "updatedAt"]) &&
+        hasRequiredFields(data, ["envelope", "updatedAt"]) &&
+        isValidOptionalString(data.name, 120) &&
+        (!("email" in data) || isValidEmail(data.email)) &&
+        isValidEnvelope(data.envelope) &&
+        isValidIsoDateString(data.updatedAt);
+    }
+
+    function isValidMonthlySnapshot(data, userId, monthId) {
+      return data is map &&
+        hasOnlyAllowedFields(data, ["userId", "month", "income", "totalGastos", "totalDividas", "comprometimento", "status", "source", "closedAt", "createdAt", "updatedAt"]) &&
+        hasRequiredFields(data, ["userId", "month", "income", "totalGastos", "totalDividas", "comprometimento", "status", "source", "closedAt", "createdAt", "updatedAt"]) &&
+        data.userId is string &&
+        data.userId == userId &&
+        data.month is string &&
+        data.month == monthId &&
+        isValidMonthId(data.month) &&
+        isNonNegativeNumber(data.income, 100000000) &&
+        isNonNegativeNumber(data.totalGastos, 100000000) &&
+        isNonNegativeNumber(data.totalDividas, 100000000) &&
+        isNonNegativeNumber(data.comprometimento, 1000) &&
+        isValidSnapshotStatus(data.status) &&
+        isValidSnapshotSource(data.source) &&
+        isValidSnapshotClosedAt(data.closedAt, data.status) &&
+        isValidIsoDateString(data.createdAt) &&
+        isValidIsoDateString(data.updatedAt);
+    }
+
+    match /users/{userId} {
+      allow read: if isOwner(userId);
+      allow create: if isOwner(userId) && isValidUserDoc(request.resource.data);
+      allow update: if isOwner(userId) && isValidUserDoc(request.resource.data);
+      allow delete: if isOwner(userId);
+
+      match /monthly_snapshots/{monthId} {
+        allow read: if isOwner(userId) &&
+          exists(/databases/$(database)/documents/users/$(userId));
+
+        allow create: if isOwner(userId) &&
+          exists(/databases/$(database)/documents/users/$(userId)) &&
+          isValidMonthlySnapshot(request.resource.data, userId, monthId) &&
+          isClientSnapshot(request.resource.data);
+
+        allow update: if isOwner(userId) &&
+          exists(/databases/$(database)/documents/users/$(userId)) &&
+          isValidMonthlySnapshot(resource.data, userId, monthId) &&
+          isValidMonthlySnapshot(request.resource.data, userId, monthId) &&
+          resource.data.status == "open" &&
+          isClientSnapshot(resource.data) &&
+          isClientSnapshot(request.resource.data) &&
+          request.resource.data.userId == resource.data.userId &&
+          request.resource.data.month == resource.data.month &&
+          request.resource.data.createdAt == resource.data.createdAt;
+
+        allow delete: if false;
+      }
+    }
   }
 }
